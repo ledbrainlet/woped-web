@@ -16,12 +16,6 @@
       </label>
 
       <div *ngIf="isLLMEnabled">
-        <!-- API Key Input -->
-        <mat-form-field appearance="outline" class="w-100 mt-2">
-          <mat-label>API Key</mat-label>
-          <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey" placeholder="Enter your LLM API key" />
-        </mat-form-field>
-
         <!-- LLM Provider Auswahl -->
         <div class="mt-2">
           <label class="d-block mb-1"><strong>LLM Provider</strong></label>
@@ -30,6 +24,12 @@
             <mat-radio-button value="gemini">Gemini</mat-radio-button>
           </mat-radio-group>
         </div>
+
+        <!-- API Key Input -->
+        <mat-form-field appearance="outline" class="w-100 mt-2">
+          <mat-label>API Key</mat-label>
+          <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey" placeholder="Enter your LLM API key" />
+        </mat-form-field>
 
         <!-- Prompting Strategy Auswahl -->
         <div class="mt-2">
@@ -45,25 +45,7 @@
     <button mat-button matStepperNext class="card">Next</button>
   </mat-step>
 
-  <!-- Step 2: Select Model -->
-  <mat-step>
-    <form>
-      <ng-template matStepLabel>Choose Your Model</ng-template>
-      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
-        <mat-radio-button value="bpmn">BPMN</mat-radio-button>
-        <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
-      </mat-radio-group>
-
-      <div>
-        <button type="button" mat-button matStepperPrevious class="card">Back</button>
-        <button type="button" mat-button matStepperNext class="card">
-          Next
-        </button>
-      </div>
-    </form>
-  </mat-step>
-
-  <!-- Step 3: Text Input -->
+  <!-- Step 2: Text Input -->
   <mat-step>
     <form>
       <ng-template matStepLabel>Insert your Text</ng-template>
@@ -85,6 +67,24 @@
 
       <div>
         <button mat-button matStepperPrevious class="card">Back</button>
+        <button type="button" mat-button matStepperNext class="card">
+          Next
+        </button>
+      </div>
+    </form>
+  </mat-step>
+
+  <!-- Step 3: Select Model -->
+  <mat-step>
+    <form>
+      <ng-template matStepLabel>Choose Your Model</ng-template>
+      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
+        <mat-radio-button value="bpmn">BPMN</mat-radio-button>
+        <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
+      </mat-radio-group>
+
+      <div>
+        <button type="button" mat-button matStepperPrevious class="card">Back</button>
         <button type="button" mat-button matStepperNext class="card" (click)="generateProcess(modelInput.value)">
           Generate
         </button>
