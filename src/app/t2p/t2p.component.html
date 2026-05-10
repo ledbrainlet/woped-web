@@ -45,7 +45,25 @@
     <button mat-button matStepperNext class="card">Next</button>
   </mat-step>
 
-  <!-- Step 2: Text Input -->
+  <!-- Step 2: Select Model -->
+  <mat-step>
+    <form>
+      <ng-template matStepLabel>Choose Your Model</ng-template>
+      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
+        <mat-radio-button value="bpmn">BPMN</mat-radio-button>
+        <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
+      </mat-radio-group>
+
+      <div>
+        <button type="button" mat-button matStepperPrevious class="card">Back</button>
+        <button type="button" mat-button matStepperNext class="card">
+          Next
+        </button>
+      </div>
+    </form>
+  </mat-step>
+
+  <!-- Step 3: Text Input -->
   <mat-step>
     <form>
       <ng-template matStepLabel>Insert your Text</ng-template>
@@ -67,24 +85,6 @@
 
       <div>
         <button mat-button matStepperPrevious class="card">Back</button>
-        <button type="button" mat-button matStepperNext class="card">
-          Next
-        </button>
-      </div>
-    </form>
-  </mat-step>
-
-  <!-- Step 3: Select Model -->
-  <mat-step>
-    <form>
-      <ng-template matStepLabel>Choose Your Model</ng-template>
-      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
-        <mat-radio-button value="bpmn">BPMN</mat-radio-button>
-        <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
-      </mat-radio-group>
-
-      <div>
-        <button type="button" mat-button matStepperPrevious class="card">Back</button>
         <button type="button" mat-button matStepperNext class="card" (click)="generateProcess(modelInput.value)">
           Generate
         </button>
