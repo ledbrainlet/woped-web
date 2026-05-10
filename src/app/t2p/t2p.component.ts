@@ -18,6 +18,8 @@ export class T2PComponent {
   protected responseText = '';
   protected promptingStrategy = 'few_shot'; // NEW
   protected selectedLLMProvider = 'openai'; // (optional, not used yet)
+  protected apiKeyValid: boolean | null = null;
+  protected apiKeyChecking = false;
 
   @ViewChild('stepperRef') stepper!: MatStepper;
   @ViewChild('dropZone', { static: true }) dropZone!: ElementRef<HTMLDivElement>;
@@ -28,10 +30,35 @@ export class T2PComponent {
   @ViewChild('apiKeyInput') apiKeyInput!: ElementRef;
   @ViewChild('llmSwitch') llmSwitch!: ElementRef;
 
+
   constructor(
     private http: t2pHttpService,
     public spinnerService: SpinnerService
   ) { }
+
+protected async validateApiKey() {
+  if (!this.apiKey) return;
+  this.apiKeyChecking = true;
+  this.apiKeyValid = null;
+
+  try {
+    if (this.selectedLLMProvider === 'openai') {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: { 'Authorization': `Bearer ${this.apiKey}` }
+      });
+      this.apiKeyValid = response.ok;
+    } else if (this.selectedLLMProvider === 'gemini') {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${this.apiKey}`
+      );
+      this.apiKeyValid = response.ok;
+    }
+  } catch (e) {
+    this.apiKeyValid = false;
+  }
+
+  this.apiKeyChecking = false;
+}
 
   protected generateProcess(inputText: string) {
     document.getElementById('error-container-text')!.style.display = 'none';
