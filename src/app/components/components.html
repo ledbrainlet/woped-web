@@ -1,0 +1,251 @@
+<mat-vertical-stepper [linear]="false" #stepper [animationDuration]="200">
+
+  <!-- Step 1: Configuration (LLM-Setup) -->
+  <mat-step>
+    <ng-template matStepLabel>Configuration</ng-template>
+    <form>
+
+      <label>
+        <input type="checkbox" [checked]="isLLMEnabled" (change)="isLLMEnabled = $event.target.checked" />
+        Use LLM
+      </label>
+
+      <div *ngIf="isLLMEnabled">
+        <!-- LLM Provider Auswahl -->
+        <div class="mt-2">
+          <label class="d-block mb-1"><strong>LLM Provider</strong></label>
+          <mat-radio-group [(ngModel)]="selectedLLMProvider" name="llmProvider">
+            <mat-radio-button value="openai" class="mr-4">OpenAI</mat-radio-button>
+            <mat-radio-button value="gemini" class="mr-4">Gemini</mat-radio-button>
+            <mat-radio-button value="lmstudio">LM Studio</mat-radio-button>
+          </mat-radio-group>
+        </div>
+
+        <!-- API Key Input (nur wenn nicht LM Studio) -->
+        <div *ngIf="selectedLLMProvider !== 'lmstudio'">
+          <mat-form-field appearance="outline" class="w-100 mt-2">
+            <mat-label>API Key</mat-label>
+            <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey"
+              placeholder="Enter your LLM API key" />
+          </mat-form-field>
+          <button mat-button class="card" type="button" (click)="validateApiKey()" [disabled]="apiKeyChecking">
+            {{ apiKeyChecking ? 'Checking...' : 'Validate Key' }}
+          </button>
+          <p style="color: green;" *ngIf="apiKeyValid === true">✔ API Key is valid.</p>
+          <p style="color: red;" *ngIf="apiKeyValid === false">✘ Invalid API Key for {{ selectedLLMProvider }}.</p>
+        </div>
+
+        <p *ngIf="selectedLLMProvider === 'lmstudio'" style="color: green;">
+          ✔ LM Studio runs locally – no API key required.
+        </p>
+      </div>
+
+    </form>
+    <br />
+    <button mat-button matStepperNext class="card"
+      [disabled]="isLLMEnabled && selectedLLMProvider !== 'lmstudio' && apiKeyValid !== true">
+      Next
+    </button>
+  </mat-step>
+
+  <!-- Step 2: Tool-Auswahl (T2P oder P2T) -->
+  <mat-step>
+    <ng-template matStepLabel>Choose Tool</ng-template>
+    <form>
+
+      <div class="tool-selection">
+        <!-- T2P Card -->
+        <div class="tool-card" [class.selected]="selectedTool === 't2p'" (click)="selectedTool = 't2p'">
+          <h3>Text → Process (T2P)</h3>
+          <p>
+            The text-to-process approach deals with the conversion of a text description into a model
+            within the framework of business process management (BPM) and natural language processing (NLP).
+          </p>
+        </div>
+
+        <!-- P2T Card -->
+        <div class="tool-card" [class.selected]="selectedTool === 'p2t'" (click)="selectedTool = 'p2t'">
+          <h3>Process → Text (P2T)</h3>
+          <p>
+            The process-to-text approach in the context of BPM and NLP refers to the automatic generation
+            of text descriptions from business process models. Process models can be analyzed and translated
+            into natural language for training documentation, user documentation, or compliance reports.
+          </p>
+        </div>
+      </div>
+
+    </form>
+    <br />
+    <button mat-button matStepperPrevious class="card">Back</button>
+    <button mat-button matStepperNext class="card" [disabled]="!selectedTool">Next</button>
+  </mat-step>
+
+
+  <!-- ======================== T2P STEPS ======================== -->
+
+  <!-- Step 3 (T2P): Insert your Text -->
+  <mat-step *ngIf="selectedTool === 't2p'">
+    <form>
+      <ng-template matStepLabel>Insert your Text</ng-template>
+
+      <!-- Prompting Strategy (nur wenn LLM aktiv) -->
+      <div *ngIf="isLLMEnabled" class="mt-2 mb-2">
+        <label class="d-block mb-1"><strong>Prompting Strategy</strong></label>
+        <mat-radio-group [(ngModel)]="promptingStrategy" name="promptingStrategy">
+          <mat-radio-button value="few_shot" class="mr-4">Few-Shot</mat-radio-button>
+          <mat-radio-button value="zero_shot">Zero-Shot</mat-radio-button>
+        </mat-radio-group>
+      </div>
+
+      <mat-form-field appearance="fill" [style.width.%]="50">
+        <mat-label>Enter Text to Transform</mat-label>
+        <textarea class="textfeld" [style.width.%]="100" matInput cdkTextareaAutosize cdkAutosizeMinRows="4"
+          cdkAutosizeMaxRows="100" id="text-input" #modelInput>{{ text }}</textarea>
+      </mat-form-field>
+
+      <!-- File Upload via Drag & Drop -->
+      <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
+        (click)="selectT2PFiles()">
+        <input type="file" style="display: none" #fileInputRef accept=".txt" (change)="onT2PFileSelected($event)" />
+        <span *ngIf="isFiledDropped">Uploaded file: {{ droppedFileName }}</span>
+        <span *ngIf="!isFiledDropped">
+          Upload file via drag-and-drop or click here
+        </span>
+      </div>
+
+      <div>
+        <button mat-button matStepperPrevious class="card">Back</button>
+        <button type="button" mat-button matStepperNext class="card">Next</button>
+      </div>
+    </form>
+  </mat-step>
+
+  <!-- Step 4 (T2P): Choose Your Model -->
+  <mat-step *ngIf="selectedTool === 't2p'">
+    <form>
+      <ng-template matStepLabel>Choose Your Model</ng-template>
+      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
+        <mat-radio-button value="bpmn">BPMN</mat-radio-button>
+        <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
+      </mat-radio-group>
+
+      <div>
+        <button type="button" mat-button matStepperPrevious class="card">Back</button>
+        <button type="button" mat-button matStepperNext class="card" (click)="generateProcess(text)">
+          Generate
+        </button>
+      </div>
+    </form>
+  </mat-step>
+
+  <!-- Step 5 (T2P): Process (Done) -->
+  <mat-step *ngIf="selectedTool === 't2p'">
+    <form>
+      <ng-template matStepLabel>Process (Done)</ng-template>
+      <p>You are now done.</p>
+      <div>
+        <button mat-button matStepperPrevious class="card">Back</button>
+      </div>
+    </form>
+
+    <div id="loading">
+      <mat-spinner [diameter]="100" *ngIf="spinnerService.visibility | async"></mat-spinner>
+    </div>
+  </mat-step>
+
+
+  <!-- ======================== P2T STEPS ======================== -->
+
+  <!-- Step 3 (P2T): Insert your Model -->
+  <mat-step *ngIf="selectedTool === 'p2t'">
+    <ng-template matStepLabel>Insert your Model</ng-template>
+
+    <!-- Prompt Input (nur wenn LLM aktiv) -->
+    <div *ngIf="isLLMEnabled && showPromptInput" class="centered full-width">
+      <mat-form-field appearance="fill" class="full-width">
+        <mat-label>Prompt</mat-label>
+        <textarea matInput [(ngModel)]="prompt" name="prompt" [readonly]="isPromptReadonly"
+          cdkTextareaAutosize cdkAutosizeMinRows="4" cdkAutosizeMaxRows="100" (click)="editPrompt()">
+Create a clearly structured and comprehensible continuous text from the given BPMN that is understandable for an uninformed reader. The text should be easy to read in the summary and contain all important content; if there are subdivided points, these are integrated into the text with suitable sentence beginnings in order to obtain a well-structured and easy-to-read text. Under no circumstances should the output contain sub-items or paragraphs, but should cover all processes in one piece!
+        </textarea>
+      </mat-form-field>
+    </div>
+
+    <p>To upload your process model you can either select your file via a click in the area in your
+      explorer or drag and drop it into the pane below.<br /></p>
+
+    <!-- Dropzone for file upload -->
+    <div class="insertModel">
+      <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
+        (click)="selectT2PFiles()">
+        <input type="file" style="display: none" #fileInputRef accept=".pnml, .bpmn"
+          (change)="onT2PFileSelected($event)">
+        <span *ngIf="isFileDropped">Uploaded file: {{ droppedFileName }}</span>
+        <span *ngIf="!isFileDropped">Upload files via drag and drop or click into the textfield</span>
+      </div>
+    </div>
+
+    <!-- Model-Auswahl (nur wenn LLM aktiv) -->
+    <div *ngIf="isLLMEnabled" class="horizontal-center mt-2">
+      <mat-form-field appearance="fill" class="dropdown-field">
+        <mat-label>Select Model</mat-label>
+        <mat-select [(value)]="selectedModel" (selectionChange)="onModelChange($event.value)">
+          <mat-option *ngFor="let model of models" [value]="model">{{ model }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- RAG Toggle (nur wenn LLM aktiv) -->
+      <mat-slide-toggle (change)="onRagToggleChange($event)" class="rag-toggle">
+        {{ useRag ? 'RAG Enabled' : 'RAG Disabled' }}
+      </mat-slide-toggle>
+    </div>
+
+    <button mat-button matStepperPrevious class="card">Back</button>
+    <button mat-button matStepperNext class="card" (click)="generateText()"
+      [disabled]="isGenerateButtonDisabled()">Generate</button>
+  </mat-step>
+
+  <!-- Step 4 (P2T): Text (Done) -->
+  <mat-step *ngIf="selectedTool === 'p2t'">
+    <ng-template matStepLabel>Text (Done)</ng-template>
+
+    <div id="loading">
+      <mat-spinner [diameter]="100" *ngIf="spinnerService.visibility | async"></mat-spinner>
+    </div>
+    <div id="error-box" *ngIf="error">
+      <p id="error-content">{{ error }}</p>
+    </div>
+
+    <button mat-button matStepperPrevious class="card">Back</button>
+  </mat-step>
+
+</mat-vertical-stepper>
+
+
+<!-- ======================== OUTPUT BEREICHE ======================== -->
+
+<!-- T2P Output -->
+<div *ngIf="selectedTool === 't2p'">
+  <div>
+    <label><b>Your Input:</b> {{ textResult }}</label>
+  </div>
+  <div class="card-container">
+    <button (click)="onDownloadImage()" class="card download-card">Download Process as .png</button>
+    <button (click)="onDownloadText()" class="card download-card">Download Process as File</button>
+  </div>
+
+  <div id="error-container">
+    <p id="error-container-text"></p>
+  </div>
+
+  <div id="model-container"></div>
+</div>
+
+<!-- P2T Output -->
+<div *ngIf="selectedTool === 'p2t'">
+  <label><b>Your input:</b></label>
+  <div id="model-container"></div>
+  <label><b>Your text:</b></label>
+  <div id="result"></div>
+  <button class="card" (click)="downloadText()">Download Text as .txt</button>
+</div>
