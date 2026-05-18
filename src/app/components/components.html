@@ -103,15 +103,15 @@
           cdkAutosizeMaxRows="100" id="text-input" #modelInput>{{ text }}</textarea>
       </mat-form-field>
 
-      <!-- File Upload via Drag & Drop -->
-      <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
-        (click)="selectT2PFiles()">
-        <input type="file" style="display: none" #fileInputRef accept=".txt" (change)="onT2PFileSelected($event)" />
-        <span *ngIf="isFiledDropped">Uploaded file: {{ droppedFileName }}</span>
-        <span *ngIf="!isFiledDropped">
-          Upload file via drag-and-drop or click here
-        </span>
-      </div>
+       <!-- File Upload via Drag & Drop -->
+       <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
+         (click)="selectT2PFiles()">
+         <input type="file" style="display: none" #t2pFileInputRef accept=".txt" (change)="onT2PFileSelected($event)" />
+         <span *ngIf="isFiledDropped">Uploaded file: {{ droppedFileName }}</span>
+         <span *ngIf="!isFiledDropped">
+           Upload file via drag-and-drop or click here
+         </span>
+       </div>
 
       <div>
         <button mat-button matStepperPrevious class="card">Back</button>
@@ -174,16 +174,16 @@ Create a clearly structured and comprehensible continuous text from the given BP
     <p>To upload your process model you can either select your file via a click in the area in your
       explorer or drag and drop it into the pane below.<br /></p>
 
-    <!-- Dropzone for file upload -->
-    <div class="insertModel">
-      <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
-        (click)="selectT2PFiles()">
-        <input type="file" style="display: none" #fileInputRef accept=".pnml, .bpmn"
-          (change)="onT2PFileSelected($event)">
-        <span *ngIf="isFileDropped">Uploaded file: {{ droppedFileName }}</span>
-        <span *ngIf="!isFileDropped">Upload files via drag and drop or click into the textfield</span>
-      </div>
-    </div>
+     <!-- Dropzone for file upload -->
+     <div class="insertModel">
+       <div class="dropzone" #dropzoneRef (drop)="onP2TDrop($event)" (dragover)="onP2TDragOver($event)"
+         (click)="selectP2TFiles()">
+         <input type="file" style="display: none" #fileInputRef accept=".pnml, .bpmn"
+           (change)="onP2TFileSelected($event)">
+         <span *ngIf="isFileDropped">Uploaded file: {{ droppedFileNameP2T }}</span>
+         <span *ngIf="!isFileDropped">Upload files via drag and drop or click into the textfield</span>
+       </div>
+     </div>
 
     <!-- Model-Auswahl (nur wenn LLM aktiv) -->
     <div *ngIf="isLLMEnabled" class="horizontal-center mt-2">

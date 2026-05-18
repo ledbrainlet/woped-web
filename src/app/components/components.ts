@@ -59,7 +59,7 @@ export class CombinedComponent implements OnInit {
   @ViewChild('stepper') stepper!: MatStepper;
   @ViewChild('t2pFileInputRef') t2pFileInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('apiKeyInput') apiKeyInput!: ElementRef;
-  @ViewChild('p2tFileInputRef') p2tFileInputRef!: ElementRef<HTMLInputElement>;
+   @ViewChild('fileInputRef') p2tFileInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('llmToggle') llmToggle!: MatSlideToggle;
 
   constructor(
@@ -185,16 +185,24 @@ export class CombinedComponent implements OnInit {
     }
   }
 
-  processT2PFiles(files: FileList): void {
-    for (let i = 0; i < files.length; i++) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        window.dropfileContent = reader.result as string;
-        this.text = window.dropfileContent;
-      };
-      reader.readAsText(files[i]);
-    }
-  }
+   processT2PFiles(files: FileList): void {
+     for (let i = 0; i < files.length; i++) {
+       const file = files[i];
+       
+       // Validate file type - only allow .txt files
+       if (file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() !== 'txt') {
+         alert('Please upload only .txt files');
+         return;
+       }
+       
+       const reader = new FileReader();
+       reader.onload = () => {
+         window.dropfileContent = reader.result as string;
+         this.text = window.dropfileContent;
+       };
+       reader.readAsText(file);
+     }
+   }
 
   protected setTextResult(text: string): void {
     this.textResult = text;
@@ -331,17 +339,26 @@ export class CombinedComponent implements OnInit {
     }
   }
 
-  processP2TFiles(files: FileList): void {
-    for (let i = 0; i < files.length; i++) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        window.dropfileContent = reader.result as string;
-        this.fileType = this.getFileType(files[i].name);
-        this.displayModel();
-      };
-      reader.readAsText(files[i]);
-    }
-  }
+   processP2TFiles(files: FileList): void {
+     for (let i = 0; i < files.length; i++) {
+       const file = files[i];
+       const fileType = this.getFileType(file.name);
+       
+       // Validate file type
+       if (fileType !== 'bpmn' && fileType !== 'pnml') {
+         alert('Please upload only .bpmn or .pnml files');
+         return;
+       }
+       
+       const reader = new FileReader();
+       reader.onload = () => {
+         window.dropfileContent = reader.result as string;
+         this.fileType = fileType;
+         this.displayModel();
+       };
+       reader.readAsText(file);
+     }
+   }
 
   getFileType(fileName: string): string {
     const ext = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
