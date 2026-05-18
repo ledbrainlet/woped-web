@@ -2,48 +2,41 @@
 
   <!-- Step 1: Configuration (LLM-Setup) -->
   <mat-step>
-    <ng-template matStepLabel>Configuration</ng-template>
+    <ng-template matStepLabel>LLM Configuration</ng-template>
     <form>
 
-      <label>
-        <input type="checkbox" [checked]="isLLMEnabled" (change)="isLLMEnabled = $event.target.checked" />
-        Use LLM
-      </label>
-
-      <div *ngIf="isLLMEnabled">
-        <!-- LLM Provider Auswahl -->
-        <div class="mt-2">
-          <label class="d-block mb-1"><strong>LLM Provider</strong></label>
-          <mat-radio-group [(ngModel)]="selectedLLMProvider" name="llmProvider">
-            <mat-radio-button value="openai" class="mr-4">OpenAI</mat-radio-button>
-            <mat-radio-button value="gemini" class="mr-4">Gemini</mat-radio-button>
-            <mat-radio-button value="lmstudio">LM Studio</mat-radio-button>
-          </mat-radio-group>
-        </div>
-
-        <!-- API Key Input (nur wenn nicht LM Studio) -->
-        <div *ngIf="selectedLLMProvider !== 'lmstudio'">
-          <mat-form-field appearance="outline" class="w-100 mt-2">
-            <mat-label>API Key</mat-label>
-            <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey"
-              placeholder="Enter your LLM API key" />
-          </mat-form-field>
-          <button mat-button class="card" type="button" (click)="validateApiKey()" [disabled]="apiKeyChecking">
-            {{ apiKeyChecking ? 'Checking...' : 'Validate Key' }}
-          </button>
-          <p style="color: green;" *ngIf="apiKeyValid === true">✔ API Key is valid.</p>
-          <p style="color: red;" *ngIf="apiKeyValid === false">✘ Invalid API Key for {{ selectedLLMProvider }}.</p>
-        </div>
-
-        <p *ngIf="selectedLLMProvider === 'lmstudio'" style="color: green;">
-          ✔ LM Studio runs locally – no API key required.
-        </p>
+      <!-- LLM Provider Auswahl -->
+      <div class="mt-2">
+        <label class="d-block mb-1"><strong>LLM Provider</strong></label>
+        <mat-radio-group [(ngModel)]="selectedLLMProvider" name="llmProvider">
+          <mat-radio-button value="openai" class="mr-4">OpenAI</mat-radio-button>
+          <mat-radio-button value="gemini" class="mr-4">Gemini</mat-radio-button>
+          <mat-radio-button value="lmstudio">LM Studio</mat-radio-button>
+        </mat-radio-group>
       </div>
+
+      <!-- API Key Input (nur wenn nicht LM Studio) -->
+      <div *ngIf="selectedLLMProvider !== 'lmstudio'">
+        <mat-form-field appearance="outline" class="w-100 mt-2">
+          <mat-label>API Key</mat-label>
+          <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey"
+            placeholder="Enter your LLM API key" />
+        </mat-form-field>
+        <button mat-button class="card" type="button" (click)="validateApiKey()" [disabled]="apiKeyChecking">
+          {{ apiKeyChecking ? 'Checking...' : 'Validate Key' }}
+        </button>
+        <p style="color: green;" *ngIf="apiKeyValid === true">✔ API Key is valid.</p>
+        <p style="color: red;" *ngIf="apiKeyValid === false">✘ Invalid API Key for {{ selectedLLMProvider }}.</p>
+      </div>
+
+      <p *ngIf="selectedLLMProvider === 'lmstudio'" style="color: green;">
+        ✔ LM Studio runs locally – no API key required.
+      </p>
 
     </form>
     <br />
     <button mat-button matStepperNext class="card"
-      [disabled]="isLLMEnabled && selectedLLMProvider !== 'lmstudio' && apiKeyValid !== true">
+      [disabled]="selectedLLMProvider !== 'lmstudio' && apiKeyValid !== true">
       Next
     </button>
   </mat-step>
@@ -195,9 +188,9 @@ Create a clearly structured and comprehensible continuous text from the given BP
       </mat-form-field>
 
       <!-- RAG Toggle (nur wenn LLM aktiv) -->
-      <mat-slide-toggle (change)="onRagToggleChange($event)" class="rag-toggle">
+      <!-- <mat-slide-toggle (change)="onRagToggleChange($event)" class="rag-toggle">
         {{ useRag ? 'RAG Enabled' : 'RAG Disabled' }}
-      </mat-slide-toggle>
+      </mat-slide-toggle> -->
     </div>
 
     <button mat-button matStepperPrevious class="card">Back</button>

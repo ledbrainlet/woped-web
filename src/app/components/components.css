@@ -1,6 +1,57 @@
+:host {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 14px;
+  color: #333;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 8px 0;
+}
+
+p {
+  margin: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+/* ===================== Toolbar ===================== */
+.toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  background-color: #404243;
+  color: white;
+  font-weight: 600;
+}
+
+.toolbar img {
+  margin: 0 16px;
+}
+
+/* ===================== Content ===================== */
+.content {
+  display: flex;
+  margin: 82px auto 32px;
+  padding: 0 16px;
+  max-width: 960px;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ===================== Card ===================== */
 .card {
   border-radius: 4px;
-  border: 1px solid #ddd;
+  border: 1px solid #eee;
   background-color: #fafafa;
   height: 40px;
   width: 200px;
@@ -13,71 +64,89 @@
   transition: all 0.2s ease-in-out;
   line-height: 24px;
   cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
-.card:hover {
+.card:not(.highlight-card):hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 17px rgba(0, 0, 0, 0.2);
-  border-color: #bbb;
+  box-shadow: 0 4px 17px rgba(0, 0, 0, 0.35);
 }
 
-.card-container {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.download-card {
-  width: 220px;
-  height: 48px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
+/* ===================== Tool Selection ===================== */
 .tool-selection {
   display: flex;
   gap: 16px;
+  flex-wrap: wrap;
   margin-top: 8px;
 }
 
 .tool-card {
   flex: 1;
-  border-radius: 4px;
-  border: 2px solid #ddd;
-  background-color: #fafafa;
+  min-width: 220px;
+  border: 1px solid #eee;
+  border-radius: 8px;
   padding: 16px;
+  background-color: #fafafa;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
 
 .tool-card:hover {
-  border-color: #1976d2;
-  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 17px rgba(0, 0, 0, 0.15);
 }
 
 .tool-card.selected {
-  border-color: #1976d2;
+  border: 2px solid #1976d2;
   background-color: #e3f2fd;
 }
 
+.tool-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+  color: #333;
+}
+
+.tool-card.selected h3 {
+  color: #1976d2;
+}
+
+.tool-card p {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.tool-card.selected p {
+  color: #1565c0;
+}
+
+/* ===================== Dropzone ===================== */
 .dropzone {
-  border: 1px dashed #888;
-  height: 100px;
+  border: 1px dashed black;
+  height: 200px;
   width: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
+  flex-direction: column;
   cursor: pointer;
-  border-radius: 4px;
-  margin: 8px 0;
-  color: #666;
+  transition: background-color 0.2s ease;
+}
+
+.dropzone:hover {
+  background-color: #f5f5f5;
 }
 
 .insertModel {
-  margin-bottom: 8px;
+  display: flex;
 }
 
+/* ===================== Spinner / Loading ===================== */
+#loading {
+  text-align: center;
+}
+
+/* ===================== Model Container ===================== */
 #model-container {
   width: 100%;
   height: 30vh;
@@ -86,13 +155,10 @@
   align-items: center;
 }
 
-#loading {
-  text-align: center;
-  margin: 16px 0;
-}
-
+/* ===================== Error Handling ===================== */
 #error-container {
   width: 100%;
+  height: 10vh;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -109,18 +175,74 @@
 }
 
 #error-box {
-  border-radius: 4px;
-  border: 1px solid #da0000;
-  background-color: #f7614e;
-  padding: 12px 16px;
-  margin: 8px 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 #error-content {
   color: white;
-  margin: 0;
+  padding: 20px;
+  border-color: #da0000;
+  border-style: solid;
+  background-color: #f7614e;
+  border-radius: 10px;
+}
+
+/* ===================== Misc ===================== */
+.textfeld {
+  word-wrap: break-word;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.horizontal-center {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.dropdown-field {
+  min-width: 180px;
 }
 
 .rag-toggle {
-  margin-left: 16px;
+  margin-top: 4px;
+}
+
+a, a:visited, a:hover {
+  color: #1976d2;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #125699;
+}
+
+/* ===================== Responsive ===================== */
+@media screen and (max-width: 767px) {
+  .dropzone {
+    width: 100%;
+  }
+
+  .tool-selection {
+    flex-direction: column;
+  }
+
+  .card {
+    width: 100%;
+    margin: 4px 0;
+  }
 }

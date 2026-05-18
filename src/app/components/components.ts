@@ -25,7 +25,7 @@ export class CombinedComponent implements OnInit {
   selectedTool: 't2p' | 'p2t' | null = null;
 
   // ─── Shared LLM config (Step 1) ───────────────────────────────────────────
-  isLLMEnabled = false;
+  isLLMEnabled = true;
   selectedLLMProvider = 'openai';
   apiKey = '';
   apiKeyValid: boolean | null = null;
@@ -230,9 +230,9 @@ export class CombinedComponent implements OnInit {
     this.selectedModel = model;
   }
 
-  onRagToggleChange(event: MatSlideToggleChange): void {
-    this.useRag = event.checked;
-  }
+  // onRagToggleChange(event: MatSlideToggleChange): void {
+  //   this.useRag = event.checked;
+  // }
 
   generateText(): void {
     if (this.fileType === 'bpmn') {
