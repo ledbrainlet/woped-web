@@ -1,5 +1,5 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatStepper } from '@angular/material/stepper';
 import html2canvas from 'html2canvas';
 import { p2tHttpService } from '../Services/p2tHttpService';
@@ -19,7 +19,7 @@ declare global {
   templateUrl: './components.html',
   styleUrls: ['./components.css'],
 })
-export class CombinedComponent implements OnInit {
+export class CombinedComponent {
 
   // ─── Tool selection ───────────────────────────────────────────────────────
   selectedTool: 't2p' | 'p2t' | null = null;
@@ -67,8 +67,6 @@ export class CombinedComponent implements OnInit {
     private t2pHttpService: t2pHttpService,
     public spinnerService: SpinnerService
   ) {}
-
-  ngOnInit(): void {}
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STEP 1 – LLM Configuration
