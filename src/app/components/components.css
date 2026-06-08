@@ -174,6 +174,23 @@ p {
   display: none;
 }
 
+#fallback-warning {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+#fallback-content {
+  color: #856404;
+  padding: 12px 16px;
+  border: 1px solid #ffc107;
+  background-color: #fff3cd;
+  border-radius: 4px;
+  margin: 0;
+}
+
 #error-box {
   width: 100%;
   display: flex;

@@ -205,6 +205,9 @@ Create a clearly structured and comprehensible continuous text from the given BP
     <div id="loading">
       <mat-spinner [diameter]="100" *ngIf="spinnerService.visibility | async"></mat-spinner>
     </div>
+    <div id="fallback-warning" *ngIf="modelFallbackWarning">
+      <p id="fallback-content">⚠ {{ modelFallbackWarning }}</p>
+    </div>
     <div id="error-box" *ngIf="error">
       <p id="error-content">{{ error }}</p>
     </div>

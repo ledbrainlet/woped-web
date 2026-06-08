@@ -52,6 +52,7 @@ export class CombinedComponent implements OnInit {
   models: string[] = [];
   selectedModel: string;
   error: string;
+  modelFallbackWarning: string = '';
   hasPromptWarningShown = false;
   isApiKeyEntered = false;
 
@@ -219,10 +220,23 @@ export class CombinedComponent implements OnInit {
   // ═══════════════════════════════════════════════════════════════════════════
 
   fetchModelsForProvider(provider: string): void {
-    const key = provider === 'lmstudio' ? null : this.apiKey;
-    this.p2tHttpService.getModels(key, provider).subscribe((models) => {
-      this.models = models;
-      if (models.length) this.selectedModel = models[0];
+    const key = provider === 'lmstudio' ? '' : this.apiKey;
+    this.p2tHttpService.getModels(key, provider).subscribe({
+      next: (models) => {
+        const excluded = [
+          'instruct', 'embedding', 'whisper', 'tts', 'davinci', 'babbage',
+          'moderation', 'transcribe', 'image', 'sora', 'audio', 'realtime',
+          'search-preview', 'deep-research', 'diarize', 'codex', 'translate'
+        ];
+        this.models = models.filter(m =>
+          !excluded.some(ex => m.toLowerCase().includes(ex))
+        );
+        const preferred = this.models.find(m => m === 'gpt-4');
+        this.selectedModel = preferred ?? this.models[0];
+      },
+      error: () => {
+        this.error = 'Could not load models. Please check your API key and try again.';
+      }
     });
   }
 
@@ -245,6 +259,7 @@ export class CombinedComponent implements OnInit {
       this.spinnerService.show();
 
       if (this.isLLMEnabled) {
+        this.modelFallbackWarning = '';
         this.p2tHttpService
           .postP2TLLM(
             window.dropfileContent,
@@ -260,8 +275,36 @@ export class CombinedComponent implements OnInit {
               this.displayText(response);
             },
             error: (err: any) => {
-              this.spinnerService.hide();
-              this.error = err;
+              const fallbackModel = this.selectedLLMProvider === 'gemini' ? 'models/gemini-2.5-flash' : 'gpt-4';
+              const isServerError = typeof err === 'string' && err.includes('500');
+              if (isServerError && this.selectedModel !== fallbackModel) {
+                const failedModel = this.selectedModel;
+                this.selectedModel = fallbackModel;
+                this.modelFallbackWarning = `Model "${failedModel}" is not supported by the backend. Retrying with ${fallbackModel}...`;
+                this.p2tHttpService
+                  .postP2TLLM(
+                    window.dropfileContent,
+                    this.apiKey,
+                    this.prompt,
+                    this.selectedModel,
+                    this.selectedLLMProvider,
+                    this.useRag
+                  )
+                  .subscribe({
+                    next: (response: any) => {
+                      this.spinnerService.hide();
+                      this.modelFallbackWarning = `Model "${failedModel}" is not supported. ${fallbackModel} was used instead.`;
+                      this.displayText(response);
+                    },
+                    error: (retryErr: any) => {
+                      this.spinnerService.hide();
+                      this.error = retryErr;
+                    },
+                  });
+              } else {
+                this.spinnerService.hide();
+                this.error = err;
+              }
             },
           });
       } else {
@@ -295,7 +338,9 @@ export class CombinedComponent implements OnInit {
   }
 
   isGenerateButtonDisabled(): boolean {
-    return !this.isFileDropped;
+    if (!this.isFileDropped) return true;
+    if (!this.selectedModel) return true;
+    return false;
   }
 
   downloadText(): void {
