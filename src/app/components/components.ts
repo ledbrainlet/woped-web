@@ -105,10 +105,16 @@ export class CombinedComponent {
   // T2P – Steps 3-5
   // ═══════════════════════════════════════════════════════════════════════════
 
-  protected generateProcess(inputText: string): void {
+  protected generateProcess(): void {
     document.getElementById('error-container-text')!.style.display = 'none';
+    const text = this.replaceUmlaut(this.text.trim());
+
+    if (!text) {
+      this.setErrorMessage('Please enter a process description first.');
+      return;
+    }
+
     this.spinnerService.show();
-    const text = this.replaceUmlaut(inputText);
 
     if (this.isLLMEnabled) {
       this.t2pHttpService.postT2PWithLLM(
@@ -130,12 +136,6 @@ export class CombinedComponent {
         this.t2pHttpService.postT2PPetriNet(text);
       }
       this.setTextResult(text);
-    }
-  }
-
-  protected onSelectedDiagram(event: any): void {
-    if (event.target?.value) {
-      this.selectedDiagram = event.target.value;
     }
   }
 
@@ -215,6 +215,15 @@ export class CombinedComponent {
   // ═══════════════════════════════════════════════════════════════════════════
   // P2T – Steps 3-4
   // ═══════════════════════════════════════════════════════════════════════════
+
+  private setErrorMessage(message: string): void {
+    const errorContainer = document.getElementById('error-container-text');
+    if (!errorContainer) return;
+
+    this.spinnerService.hide();
+    errorContainer.innerHTML = message;
+    errorContainer.style.display = 'block';
+  }
 
   fetchModelsForProvider(provider: string): void {
     const key = provider === 'lmstudio' ? null : this.apiKey;
