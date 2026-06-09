@@ -1,5 +1,5 @@
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
-import { MatSlideToggle, MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatStepper } from '@angular/material/stepper';
 import html2canvas from 'html2canvas';
 import { p2tHttpService } from '../Services/p2tHttpService';
@@ -19,7 +19,7 @@ declare global {
   templateUrl: './components.html',
   styleUrls: ['./components.css'],
 })
-export class CombinedComponent implements OnInit {
+export class CombinedComponent {
 
   // ─── Tool selection ───────────────────────────────────────────────────────
   selectedTool: 't2p' | 'p2t' | null = null;
@@ -69,8 +69,6 @@ export class CombinedComponent implements OnInit {
     public spinnerService: SpinnerService
   ) {}
 
-  ngOnInit(): void {}
-
   // ═══════════════════════════════════════════════════════════════════════════
   // STEP 1 – LLM Configuration
   // ═══════════════════════════════════════════════════════════════════════════
@@ -108,10 +106,16 @@ export class CombinedComponent implements OnInit {
   // T2P – Steps 3-5
   // ═══════════════════════════════════════════════════════════════════════════
 
-  protected generateProcess(inputText: string): void {
+  protected generateProcess(): void {
     document.getElementById('error-container-text')!.style.display = 'none';
+    const text = this.replaceUmlaut(this.text.trim());
+
+    if (!text) {
+      this.setErrorMessage('Please enter a process description first.');
+      return;
+    }
+
     this.spinnerService.show();
-    const text = this.replaceUmlaut(inputText);
 
     if (this.isLLMEnabled) {
       this.t2pHttpService.postT2PWithLLM(
@@ -133,12 +137,6 @@ export class CombinedComponent implements OnInit {
         this.t2pHttpService.postT2PPetriNet(text);
       }
       this.setTextResult(text);
-    }
-  }
-
-  protected onSelectedDiagram(event: any): void {
-    if (event.target?.value) {
-      this.selectedDiagram = event.target.value;
     }
   }
 
@@ -218,6 +216,15 @@ export class CombinedComponent implements OnInit {
   // ═══════════════════════════════════════════════════════════════════════════
   // P2T – Steps 3-4
   // ═══════════════════════════════════════════════════════════════════════════
+
+  private setErrorMessage(message: string): void {
+    const errorContainer = document.getElementById('error-container-text');
+    if (!errorContainer) return;
+
+    this.spinnerService.hide();
+    errorContainer.innerHTML = message;
+    errorContainer.style.display = 'block';
+  }
 
   fetchModelsForProvider(provider: string): void {
     const key = provider === 'lmstudio' ? '' : this.apiKey;

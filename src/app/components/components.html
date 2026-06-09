@@ -93,7 +93,7 @@
       <mat-form-field appearance="fill" [style.width.%]="50">
         <mat-label>Enter Text to Transform</mat-label>
         <textarea class="textfeld" [style.width.%]="100" matInput cdkTextareaAutosize cdkAutosizeMinRows="4"
-          cdkAutosizeMaxRows="100" id="text-input" #modelInput>{{ text }}</textarea>
+          cdkAutosizeMaxRows="100" id="text-input" [(ngModel)]="text" name="textInput"></textarea>
       </mat-form-field>
 
        <!-- File Upload via Drag & Drop -->
@@ -117,14 +117,15 @@
   <mat-step *ngIf="selectedTool === 't2p'">
     <form>
       <ng-template matStepLabel>Choose Your Model</ng-template>
-      <mat-radio-group aria-label="Select an option" (click)="onSelectedDiagram($event)">
+      <mat-radio-group aria-label="Select an option" [(ngModel)]="selectedDiagram" name="selectedDiagram">
         <mat-radio-button value="bpmn">BPMN</mat-radio-button>
         <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
       </mat-radio-group>
 
       <div>
         <button type="button" mat-button matStepperPrevious class="card">Back</button>
-        <button type="button" mat-button matStepperNext class="card" (click)="generateProcess(text)">
+        <button type="button" mat-button matStepperNext class="card" (click)="generateProcess()"
+          [disabled]="!text.trim()">
           Generate
         </button>
       </div>
