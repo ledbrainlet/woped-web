@@ -20,6 +20,27 @@ p {
   flex: 1;
 }
 
+/* ===================== Language Switcher ===================== */
+.lang-switcher {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.lang-switcher .card {
+  width: 60px;
+  height: 24px;
+  padding: 8px;
+  margin: 0;
+}
+
+.lang-switcher .card.active {
+  background-color: #1976d2;
+  color: #fff;
+  border-color: #1976d2;
+}
+
 /* ===================== Toolbar ===================== */
 .toolbar {
   position: absolute;

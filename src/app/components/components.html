@@ -1,76 +1,78 @@
+<div class="lang-switcher">
+  <button mat-button class="card" [class.active]="(translocoService.langChanges$ | async) === 'de'" (click)="setLanguage('de')">DE</button>
+  <button mat-button class="card" [class.active]="(translocoService.langChanges$ | async) === 'en'" (click)="setLanguage('en')">EN</button>
+</div>
+
 <mat-vertical-stepper [linear]="false" #stepper [animationDuration]="200">
 
   <!-- Step 1: Configuration (LLM-Setup) -->
   <mat-step>
-    <ng-template matStepLabel>LLM Configuration</ng-template>
+    <ng-template matStepLabel>{{ 'step1.label' | transloco }}</ng-template>
     <form>
 
       <!-- LLM Provider Auswahl -->
       <div class="mt-2">
-        <label class="d-block mb-1"><strong>LLM Provider</strong></label>
+        <label class="d-block mb-1"><strong>{{ 'step1.providerLabel' | transloco }}</strong></label>
         <mat-radio-group [(ngModel)]="selectedLLMProvider" name="llmProvider">
-          <mat-radio-button value="openai" class="mr-4">OpenAI</mat-radio-button>
-          <mat-radio-button value="gemini" class="mr-4">Gemini</mat-radio-button>
-          <mat-radio-button value="lmstudio">LM Studio</mat-radio-button>
+          <mat-radio-button value="openai" class="mr-4">{{ 'step1.openai' | transloco }}</mat-radio-button>
+          <mat-radio-button value="gemini" class="mr-4">{{ 'step1.gemini' | transloco }}</mat-radio-button>
+          <mat-radio-button value="lmstudio">{{ 'step1.lmstudio' | transloco }}</mat-radio-button>
         </mat-radio-group>
       </div>
 
       <!-- API Key Input (nur wenn nicht LM Studio) -->
       <div *ngIf="selectedLLMProvider !== 'lmstudio'">
         <mat-form-field appearance="outline" class="w-100 mt-2">
-          <mat-label>API Key</mat-label>
+          <mat-label>{{ 'step1.apiKeyLabel' | transloco }}</mat-label>
           <input matInput #apiKeyInput [(ngModel)]="apiKey" name="apiKey"
-            placeholder="Enter your LLM API key" />
+            [placeholder]="'step1.apiKeyPlaceholder' | transloco" />
         </mat-form-field>
         <button mat-button class="card" type="button" (click)="validateApiKey()" [disabled]="apiKeyChecking">
-          {{ apiKeyChecking ? 'Checking...' : 'Validate Key' }}
+          {{ (apiKeyChecking ? 'step1.checking' : 'step1.validateKey') | transloco }}
         </button>
-        <p style="color: green;" *ngIf="apiKeyValid === true">✔ API Key is valid.</p>
-        <p style="color: red;" *ngIf="apiKeyValid === false">✘ Invalid API Key for {{ selectedLLMProvider }}.</p>
+        <p style="color: green;" *ngIf="apiKeyValid === true">{{ 'step1.apiKeyValid' | transloco }}</p>
+        <p style="color: red;" *ngIf="apiKeyValid === false">{{ 'step1.apiKeyInvalid' | transloco: { provider: selectedLLMProvider } }}</p>
       </div>
 
       <p *ngIf="selectedLLMProvider === 'lmstudio'" style="color: green;">
-        ✔ LM Studio runs locally – no API key required.
+        {{ 'step1.lmStudioInfo' | transloco }}
       </p>
 
     </form>
     <br />
     <button mat-button matStepperNext class="card"
       [disabled]="selectedLLMProvider !== 'lmstudio' && apiKeyValid !== true">
-      Next
+      {{ 'common.next' | transloco }}
     </button>
   </mat-step>
 
   <!-- Step 2: Tool-Auswahl (T2P oder P2T) -->
   <mat-step>
-    <ng-template matStepLabel>Choose Tool</ng-template>
+    <ng-template matStepLabel>{{ 'step2.label' | transloco }}</ng-template>
     <form>
 
       <div class="tool-selection">
         <!-- T2P Card -->
         <div class="tool-card" [class.selected]="selectedTool === 't2p'" (click)="selectedTool = 't2p'">
-          <h3>Text → Process (T2P)</h3>
+          <h3>{{ 'step2.t2pTitle' | transloco }}</h3>
           <p>
-            The text-to-process approach deals with the conversion of a text description into a model
-            within the framework of business process management (BPM) and natural language processing (NLP).
+            {{ 'step2.t2pDescription' | transloco }}
           </p>
         </div>
 
         <!-- P2T Card -->
         <div class="tool-card" [class.selected]="selectedTool === 'p2t'" (click)="selectedTool = 'p2t'">
-          <h3>Process → Text (P2T)</h3>
+          <h3>{{ 'step2.p2tTitle' | transloco }}</h3>
           <p>
-            The process-to-text approach in the context of BPM and NLP refers to the automatic generation
-            of text descriptions from business process models. Process models can be analyzed and translated
-            into natural language for training documentation, user documentation, or compliance reports.
+            {{ 'step2.p2tDescription' | transloco }}
           </p>
         </div>
       </div>
 
     </form>
     <br />
-    <button mat-button matStepperPrevious class="card">Back</button>
-    <button mat-button matStepperNext class="card" [disabled]="!selectedTool">Next</button>
+    <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
+    <button mat-button matStepperNext class="card" [disabled]="!selectedTool">{{ 'common.next' | transloco }}</button>
   </mat-step>
 
 
@@ -79,19 +81,19 @@
   <!-- Step 3 (T2P): Insert your Text -->
   <mat-step *ngIf="selectedTool === 't2p'">
     <form>
-      <ng-template matStepLabel>Insert your Text</ng-template>
+      <ng-template matStepLabel>{{ 't2p.step3.label' | transloco }}</ng-template>
 
       <!-- Prompting Strategy (nur wenn LLM aktiv) -->
       <div *ngIf="isLLMEnabled" class="mt-2 mb-2">
-        <label class="d-block mb-1"><strong>Prompting Strategy</strong></label>
+        <label class="d-block mb-1"><strong>{{ 't2p.step3.promptingStrategy' | transloco }}</strong></label>
         <mat-radio-group [(ngModel)]="promptingStrategy" name="promptingStrategy">
-          <mat-radio-button value="few_shot" class="mr-4">Few-Shot</mat-radio-button>
-          <mat-radio-button value="zero_shot">Zero-Shot</mat-radio-button>
+          <mat-radio-button value="few_shot" class="mr-4">{{ 't2p.step3.fewShot' | transloco }}</mat-radio-button>
+          <mat-radio-button value="zero_shot">{{ 't2p.step3.zeroShot' | transloco }}</mat-radio-button>
         </mat-radio-group>
       </div>
 
       <mat-form-field appearance="fill" [style.width.%]="50">
-        <mat-label>Enter Text to Transform</mat-label>
+        <mat-label>{{ 't2p.step3.textareaLabel' | transloco }}</mat-label>
         <textarea class="textfeld" [style.width.%]="100" matInput cdkTextareaAutosize cdkAutosizeMinRows="4"
           cdkAutosizeMaxRows="100" id="text-input" [(ngModel)]="text" name="textInput"></textarea>
       </mat-form-field>
@@ -100,15 +102,15 @@
        <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
          (click)="selectT2PFiles()">
          <input type="file" style="display: none" #t2pFileInputRef accept=".txt" (change)="onT2PFileSelected($event)" />
-         <span *ngIf="isFiledDropped">Uploaded file: {{ droppedFileName }}</span>
+         <span *ngIf="isFiledDropped">{{ 't2p.step3.uploadedFile' | transloco: { name: droppedFileName } }}</span>
          <span *ngIf="!isFiledDropped">
-           Upload file via drag-and-drop or click here
+           {{ 't2p.step3.dropzoneText' | transloco }}
          </span>
        </div>
 
       <div>
-        <button mat-button matStepperPrevious class="card">Back</button>
-        <button type="button" mat-button matStepperNext class="card">Next</button>
+        <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
+        <button type="button" mat-button matStepperNext class="card">{{ 'common.next' | transloco }}</button>
       </div>
     </form>
   </mat-step>
@@ -116,17 +118,17 @@
   <!-- Step 4 (T2P): Choose Your Model -->
   <mat-step *ngIf="selectedTool === 't2p'">
     <form>
-      <ng-template matStepLabel>Choose Your Model</ng-template>
+      <ng-template matStepLabel>{{ 't2p.step4.label' | transloco }}</ng-template>
       <mat-radio-group aria-label="Select an option" [(ngModel)]="selectedDiagram" name="selectedDiagram">
         <mat-radio-button value="bpmn">BPMN</mat-radio-button>
         <mat-radio-button value="petri-net">Petri-Net</mat-radio-button>
       </mat-radio-group>
 
       <div>
-        <button type="button" mat-button matStepperPrevious class="card">Back</button>
+        <button type="button" mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
         <button type="button" mat-button matStepperNext class="card" (click)="generateProcess()"
           [disabled]="!text.trim()">
-          Generate
+          {{ 'common.generate' | transloco }}
         </button>
       </div>
     </form>
@@ -135,10 +137,10 @@
   <!-- Step 5 (T2P): Process (Done) -->
   <mat-step *ngIf="selectedTool === 't2p'">
     <form>
-      <ng-template matStepLabel>Process (Done)</ng-template>
-      <p>You are now done.</p>
+      <ng-template matStepLabel>{{ 't2p.step5.label' | transloco }}</ng-template>
+      <p>{{ 't2p.step5.text' | transloco }}</p>
       <div>
-        <button mat-button matStepperPrevious class="card">Back</button>
+        <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
       </div>
     </form>
 
@@ -152,21 +154,18 @@
 
   <!-- Step 3 (P2T): Insert your Model -->
   <mat-step *ngIf="selectedTool === 'p2t'">
-    <ng-template matStepLabel>Insert your Model</ng-template>
+    <ng-template matStepLabel>{{ 'p2t.step3.label' | transloco }}</ng-template>
 
     <!-- Prompt Input (nur wenn LLM aktiv) -->
     <div *ngIf="isLLMEnabled && showPromptInput" class="centered full-width">
       <mat-form-field appearance="fill" class="full-width">
-        <mat-label>Prompt</mat-label>
+        <mat-label>{{ 'p2t.step3.promptLabel' | transloco }}</mat-label>
         <textarea matInput [(ngModel)]="prompt" name="prompt" [readonly]="isPromptReadonly"
-          cdkTextareaAutosize cdkAutosizeMinRows="4" cdkAutosizeMaxRows="100" (click)="editPrompt()">
-Create a clearly structured and comprehensible continuous text from the given BPMN that is understandable for an uninformed reader. The text should be easy to read in the summary and contain all important content; if there are subdivided points, these are integrated into the text with suitable sentence beginnings in order to obtain a well-structured and easy-to-read text. Under no circumstances should the output contain sub-items or paragraphs, but should cover all processes in one piece!
-        </textarea>
+          cdkTextareaAutosize cdkAutosizeMinRows="4" cdkAutosizeMaxRows="100" (click)="editPrompt()">{{ 'p2t.step3.promptDefault' | transloco }}</textarea>
       </mat-form-field>
     </div>
 
-    <p>To upload your process model you can either select your file via a click in the area in your
-      explorer or drag and drop it into the pane below.<br /></p>
+    <p>{{ 'p2t.step3.uploadInstructions' | transloco }}<br /></p>
 
      <!-- Dropzone for file upload -->
      <div class="insertModel">
@@ -174,15 +173,15 @@ Create a clearly structured and comprehensible continuous text from the given BP
          (click)="selectP2TFiles()">
          <input type="file" style="display: none" #fileInputRef accept=".pnml, .bpmn"
            (change)="onP2TFileSelected($event)">
-         <span *ngIf="isFileDropped">Uploaded file: {{ droppedFileNameP2T }}</span>
-         <span *ngIf="!isFileDropped">Upload files via drag and drop or click into the textfield</span>
+         <span *ngIf="isFileDropped">{{ 'p2t.step3.uploadedFile' | transloco: { name: droppedFileNameP2T } }}</span>
+         <span *ngIf="!isFileDropped">{{ 'p2t.step3.dropzoneText' | transloco }}</span>
        </div>
      </div>
 
     <!-- Model-Auswahl (nur wenn LLM aktiv) -->
     <div *ngIf="isLLMEnabled" class="horizontal-center mt-2">
       <mat-form-field appearance="fill" class="dropdown-field">
-        <mat-label>Select Model</mat-label>
+        <mat-label>{{ 'p2t.step3.selectModel' | transloco }}</mat-label>
         <mat-select [(value)]="selectedModel" (selectionChange)="onModelChange($event.value)">
           <mat-option *ngFor="let model of models" [value]="model">{{ model }}</mat-option>
         </mat-select>
@@ -194,14 +193,14 @@ Create a clearly structured and comprehensible continuous text from the given BP
       </mat-slide-toggle> -->
     </div>
 
-    <button mat-button matStepperPrevious class="card">Back</button>
+    <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
     <button mat-button matStepperNext class="card" (click)="generateText()"
-      [disabled]="isGenerateButtonDisabled()">Generate</button>
+      [disabled]="isGenerateButtonDisabled()">{{ 'common.generate' | transloco }}</button>
   </mat-step>
 
   <!-- Step 4 (P2T): Text (Done) -->
   <mat-step *ngIf="selectedTool === 'p2t'">
-    <ng-template matStepLabel>Text (Done)</ng-template>
+    <ng-template matStepLabel>{{ 'p2t.step4.label' | transloco }}</ng-template>
 
     <div id="loading">
       <mat-spinner [diameter]="100" *ngIf="spinnerService.visibility | async"></mat-spinner>
@@ -213,7 +212,7 @@ Create a clearly structured and comprehensible continuous text from the given BP
       <p id="error-content">{{ error }}</p>
     </div>
 
-    <button mat-button matStepperPrevious class="card">Back</button>
+    <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
   </mat-step>
 
 </mat-vertical-stepper>
@@ -224,11 +223,11 @@ Create a clearly structured and comprehensible continuous text from the given BP
 <!-- T2P Output -->
 <div *ngIf="selectedTool === 't2p'">
   <div>
-    <label><b>Your Input:</b> {{ textResult }}</label>
+    <label><b>{{ 't2p.output.yourInput' | transloco }}</b> {{ textResult }}</label>
   </div>
   <div class="card-container">
-    <button (click)="onDownloadImage()" class="card download-card">Download Process as .png</button>
-    <button (click)="onDownloadText()" class="card download-card">Download Process as File</button>
+    <button (click)="onDownloadImage()" class="card download-card">{{ 't2p.output.downloadImage' | transloco }}</button>
+    <button (click)="onDownloadText()" class="card download-card">{{ 't2p.output.downloadFile' | transloco }}</button>
   </div>
 
   <div id="error-container">
@@ -240,9 +239,9 @@ Create a clearly structured and comprehensible continuous text from the given BP
 
 <!-- P2T Output -->
 <div *ngIf="selectedTool === 'p2t'">
-  <label><b>Your input:</b></label>
+  <label><b>{{ 'p2t.output.yourInput' | transloco }}</b></label>
   <div id="model-container"></div>
-  <label><b>Your text:</b></label>
+  <label><b>{{ 'p2t.output.yourText' | transloco }}</b></label>
   <div id="result"></div>
-  <button class="card" (click)="downloadText()">Download Text as .txt</button>
+  <button class="card" (click)="downloadText()">{{ 'p2t.output.downloadText' | transloco }}</button>
 </div>

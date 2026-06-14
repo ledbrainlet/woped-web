@@ -20,6 +20,7 @@ import { t2pHttpService } from './Services/t2pHttpService';
 import { AppComponent } from './app.component';
 import { CombinedComponent } from './components/components';
 import { HomeComponent } from './home/home.component';
+import { TranslocoRootModule } from './transloco-root.module';
 
 const routes: Routes = [
   { path: 'home', component: HomeComponent },
@@ -46,6 +47,7 @@ const routes: Routes = [
     TextFieldModule,
     FormsModule,
     ReactiveFormsModule,
+    TranslocoRootModule,
   ],
   providers: [
     {

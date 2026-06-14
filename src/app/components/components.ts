@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatStepper } from '@angular/material/stepper';
+import { TranslocoService } from '@ngneat/transloco';
 import html2canvas from 'html2canvas';
 import { p2tHttpService } from '../Services/p2tHttpService';
 import { t2pHttpService } from '../Services/t2pHttpService';
@@ -66,8 +67,13 @@ export class CombinedComponent {
   constructor(
     private p2tHttpService: p2tHttpService,
     private t2pHttpService: t2pHttpService,
-    public spinnerService: SpinnerService
+    public spinnerService: SpinnerService,
+    public translocoService: TranslocoService
   ) {}
+
+  setLanguage(lang: string): void {
+    this.translocoService.setActiveLang(lang);
+  }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // STEP 1 – LLM Configuration
