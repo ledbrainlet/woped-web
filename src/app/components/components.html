@@ -108,7 +108,7 @@
          </span>
        </div>
 
-      <div>
+      <div class="mt-btn-row">
         <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
         <button type="button" mat-button matStepperNext class="card">{{ 'common.next' | transloco }}</button>
       </div>
@@ -139,7 +139,7 @@
     <form>
       <ng-template matStepLabel>{{ 't2p.step5.label' | transloco }}</ng-template>
       <p>{{ 't2p.step5.text' | transloco }}</p>
-      <div>
+      <div class="mt-btn-row">
         <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>
       </div>
     </form>
@@ -165,10 +165,10 @@
       </mat-form-field>
     </div>
 
-    <p>{{ 'p2t.step3.uploadInstructions' | transloco }}<br /></p>
+    <p class="mt-btn-row">{{ 'p2t.step3.uploadInstructions' | transloco }}<br /></p>
 
      <!-- Dropzone for file upload -->
-     <div class="insertModel">
+     <div class="insertModel mt-btn-row">
        <div class="dropzone" #dropzoneRef (drop)="onP2TDrop($event)" (dragover)="onP2TDragOver($event)"
          (click)="selectP2TFiles()">
          <input type="file" style="display: none" #fileInputRef accept=".pnml, .bpmn"
@@ -225,7 +225,7 @@
   <div>
     <label><b>{{ 't2p.output.yourInput' | transloco }}</b> {{ textResult }}</label>
   </div>
-  <div class="card-container">
+  <div class="card-container mt-btn-row">
     <button (click)="onDownloadImage()" class="card download-card">{{ 't2p.output.downloadImage' | transloco }}</button>
     <button (click)="onDownloadText()" class="card download-card">{{ 't2p.output.downloadFile' | transloco }}</button>
   </div>
