@@ -25,6 +25,10 @@ p {
   margin-top: 16px;
 }
 
+.mt-btn-row-2x {
+  margin-top: 32px;
+}
+
 /* ===================== Language Switcher ===================== */
 .lang-switcher {
   display: flex;
