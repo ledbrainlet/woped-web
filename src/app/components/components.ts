@@ -1,5 +1,4 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { MatSlideToggle } from '@angular/material/slide-toggle';
 import { MatStepper } from '@angular/material/stepper';
 import { TranslocoService } from '@ngneat/transloco';
 import html2canvas from 'html2canvas';
