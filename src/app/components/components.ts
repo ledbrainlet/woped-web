@@ -61,7 +61,7 @@ export class CombinedComponent {
   @ViewChild('t2pFileInputRef') t2pFileInputRef!: ElementRef<HTMLInputElement>;
   @ViewChild('apiKeyInput') apiKeyInput!: ElementRef;
    @ViewChild('fileInputRef') p2tFileInputRef!: ElementRef<HTMLInputElement>;
-  @ViewChild('llmToggle') llmToggle!: MatSlideToggle;
+
 
   constructor(
     private p2tHttpService: p2tHttpService,
@@ -146,20 +146,30 @@ export class CombinedComponent {
   }
 
   protected onDownloadText(): void {
-    this.t2pHttpService.downloadModelAsText();
+    const filename = this.selectedDiagram === 'bpmn' ? 't2p.bpmn' : 't2p.pnml';
+    this.t2pHttpService.downloadModelAsText(filename);
   }
 
   onDownloadImage(): void {
-    const element = document.getElementById('model-container')!;
-    html2canvas(element).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.href = imgData;
-      link.download = 't2p.png';
+    const link = document.createElement('a');
+    link.download = 't2p.png';
+
+    if (this.selectedDiagram === 'petri-net') {
+      const dataUrl = ModelDisplayer.lastPetriNetDataUrl;
+      if (!dataUrl) return;
+      link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    });
+    } else {
+      const element = document.getElementById('model-container')!;
+      html2canvas(element).then((canvas) => {
+        link.href = canvas.toDataURL('image/png');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
+    }
   }
 
   protected onDrop(event: DragEvent): void {
@@ -411,7 +421,7 @@ export class CombinedComponent {
        reader.onload = () => {
          window.dropfileContent = reader.result as string;
          this.fileType = fileType;
-         this.displayModel();
+         setTimeout(() => this.displayModel(), 0);
        };
        reader.readAsText(file);
      }

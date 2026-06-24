@@ -234,13 +234,18 @@
     <p id="error-container-text"></p>
   </div>
 
-  <div id="model-container"></div>
+  <div id="model-container" *ngIf="selectedDiagram === 'bpmn'"></div>
 </div>
+
+<!-- Off-screen container for Petri-Net vis.js rendering (never visible, always in DOM) -->
+<div id="petri-render-container" style="position:fixed; top:-2000px; left:0; width:800px; height:600px; pointer-events:none;"></div>
 
 <!-- P2T Output -->
 <div *ngIf="selectedTool === 'p2t'">
-  <label><b>{{ 'p2t.output.yourInput' | transloco }}</b></label>
-  <div id="model-container" class="mt-btn-row"></div>
+  <ng-container *ngIf="fileType === 'bpmn'">
+    <label><b>{{ 'p2t.output.yourInput' | transloco }}</b></label>
+    <div id="model-container" class="mt-btn-row"></div>
+  </ng-container>
   <div class="mt-btn-row-2x"><label><b>{{ 'p2t.output.yourText' | transloco }}</b></label></div>
   <div id="result" class="mt-btn-row"></div>
   <button class="card mt-btn-row" (click)="downloadText()">{{ 'p2t.output.downloadText' | transloco }}</button>

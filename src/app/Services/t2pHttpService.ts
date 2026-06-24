@@ -28,7 +28,8 @@ export class t2pHttpService {
   //Makes the HTTP request and returns the HTTP response for the BPMN model. Triggers the display of the model at the same time.
   public postT2PBPMN(text: string) {
     //Reset Model Container Div, so that only valid/current model will be displayed.
-    document.getElementById('model-container')!.innerHTML = '';
+    const modelContainer = document.getElementById('model-container');
+    if (modelContainer) modelContainer.innerHTML = '';
     return this.t2phttpClient
       .post<string>(this.urlBPMN, text, httpOptions)
       .subscribe(
@@ -52,8 +53,7 @@ export class t2pHttpService {
   }
 
   //Enables the download of a text file in which the diagram is displayed as a .pnml or .bpmn file. ???
-  public downloadModelAsText() {
-    const filename = 't2p';
+  public downloadModelAsText(filename = 't2p.pnml') {
     const element = document.createElement('a');
     element.setAttribute(
       'href',
@@ -71,15 +71,14 @@ export class t2pHttpService {
   //Makes the HTTP request and returns the HTTP response for the  Petri net. Triggers the display of the model at the same time.
   //The Petri net is displayed in the same way as the BPMN model.
   public postT2PPetriNet(text: string) {
-    //Reset Model Container Div, so that only valid/current model will be displayed.
-    document.getElementById('model-container')!.innerHTML = '';
+    const petriContainer = document.getElementById('petri-render-container');
+    if (petriContainer) petriContainer.innerHTML = '';
     return this.t2phttpClient
       .post<string>(this.urlPetriNet, text, httpOptions)
       .subscribe(
         (response: any) => {
           this.spinnerService.hide();
-          // Call Method to Display the BPMN Model.
-          ModelDisplayer.generatePetriNet(response);
+          ModelDisplayer.generatePetriNet(response, 'petri-render-container');
           this.plainDocumentForDownload = response;
         },
         (error: any) => {
@@ -125,8 +124,10 @@ export class t2pHttpService {
       approach: approach,
       llm_provider: llmProvider // Use the dynamic llm_provider from frontend
     };
-    // Reset Model Container Div, so that only valid/current model will be displayed.
-    document.getElementById('model-container')!.innerHTML = '';
+    const modelContainer = document.getElementById('model-container');
+    if (modelContainer) modelContainer.innerHTML = '';
+    const petriContainer = document.getElementById('petri-render-container');
+    if (petriContainer) petriContainer.innerHTML = '';
 
     return this.t2phttpClient.post<string>(llmUrl, body, httpOptions).subscribe(
       (response: any) => {
@@ -149,7 +150,7 @@ export class t2pHttpService {
         if (modelType.toLowerCase().includes('bpmn') || modelType === 'bpmn') {
           ModelDisplayer.displayBPMNModel(xmlContent);
         } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
-          ModelDisplayer.generatePetriNet(xmlContent);
+          ModelDisplayer.generatePetriNet(xmlContent, 'petri-render-container');
         }
 
         callback(parsedResponse); // Call the callback function with the parsed response
