@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core';
 
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { SpinnerService } from '../utilities/SpinnerService';
-
 import { ModelDisplayer } from '../utilities/modelDisplayer';
+import { TransformerService } from './transformerService';
 
 const httpOptions = {
   headers: new HttpHeaders({
@@ -23,7 +23,8 @@ export class t2pHttpService {
 
   constructor(
     private t2phttpClient: HttpClient,
-    public spinnerService: SpinnerService
+    public spinnerService: SpinnerService,
+    private transformerService: TransformerService
   ) { }
   //Makes the HTTP request and returns the HTTP response for the BPMN model. Triggers the display of the model at the same time.
   public postT2PBPMN(text: string) {
@@ -108,8 +109,8 @@ export class t2pHttpService {
       llmUrl = this.urlBPMN;
       console.log('Using BPMN URL:', llmUrl);
     } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
-      llmUrl = this.urlPetriNet;
-      console.log('Using Petri Net URL:', llmUrl);
+      llmUrl = this.urlBPMN; // LLM generates BPMN; we convert to PNML afterwards via transformer
+      console.log('Using BPMN URL for Petri-Net (LLM path):', llmUrl);
     } else {
       console.error('Unknown model type:', modelType);
       this.spinnerService.hide();
@@ -149,11 +150,25 @@ export class t2pHttpService {
         // Determine which display method to use based on modelType
         if (modelType.toLowerCase().includes('bpmn') || modelType === 'bpmn') {
           ModelDisplayer.displayBPMNModel(xmlContent);
+          callback(parsedResponse);
         } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
-          ModelDisplayer.generatePetriNet(xmlContent, 'petri-render-container');
+          // LLM returned BPMN — convert to PNML via transformer
+          this.transformerService.bpmnToPnml(xmlContent).subscribe({
+            next: (pnml: string) => {
+              this.plainDocumentForDownload = pnml;
+              ModelDisplayer.generatePetriNet(pnml, 'petri-render-container');
+              callback(parsedResponse);
+            },
+            error: (err: any) => {
+              this.spinnerService.hide();
+              const errorEl = document.getElementById('error-container-text');
+              if (errorEl) {
+                errorEl.innerHTML = 'BPMN→PNML Transformation fehlgeschlagen: ' + err.status;
+                errorEl.style.display = 'block';
+              }
+            }
+          });
         }
-
-        callback(parsedResponse); // Call the callback function with the parsed response
       },
       (error: any) => {
         this.spinnerService.hide();

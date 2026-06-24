@@ -4,6 +4,7 @@ import { TranslocoService } from '@ngneat/transloco';
 import html2canvas from 'html2canvas';
 import { p2tHttpService } from '../Services/p2tHttpService';
 import { t2pHttpService } from '../Services/t2pHttpService';
+import { TransformerService } from '../Services/transformerService';
 import { SpinnerService } from '../utilities/SpinnerService';
 import { ModelDisplayer } from '../utilities/modelDisplayer';
 
@@ -66,6 +67,7 @@ export class CombinedComponent {
   constructor(
     private p2tHttpService: p2tHttpService,
     private t2pHttpService: t2pHttpService,
+    private transformerService: TransformerService,
     public spinnerService: SpinnerService,
     public translocoService: TranslocoService
   ) {}
@@ -79,6 +81,7 @@ export class CombinedComponent {
   // ═══════════════════════════════════════════════════════════════════════════
 
   async validateApiKey(): Promise<void> {
+    this.apiKey = this.apiKey.trim();
     if (!this.apiKey) return;
     this.apiKeyChecking = true;
     this.apiKeyValid = null;
@@ -257,7 +260,14 @@ export class CombinedComponent {
         this.selectedModel = preferred ?? this.models[0];
       },
       error: () => {
-        this.error = 'Could not load models. Please check your API key and try again.';
+        const fallbacks: Record<string, string> = {
+          openai: 'gpt-4o',
+          gemini: 'models/gemini-2.5-flash',
+          lmstudio: 'local-model',
+        };
+        this.selectedModel = fallbacks[this.selectedLLMProvider] ?? 'gpt-4o';
+        this.models = [this.selectedModel];
+        this.modelFallbackWarning = `Model list unavailable — using default: ${this.selectedModel}`;
       }
     });
   }
@@ -273,62 +283,29 @@ export class CombinedComponent {
   generateText(): void {
     if (this.fileType === 'bpmn') {
       ModelDisplayer.displayBPMNModel(window.dropfileContent);
-    } else if (this.fileType === 'pnml') {
-      ModelDisplayer.generatePetriNet(window.dropfileContent);
     }
 
     if (window.fileContent !== undefined || window.dropfileContent !== undefined) {
       this.spinnerService.show();
 
+      // PNML: erst PNML→BPMN via Transformer, dann LLM-Endpunkt
+      if (this.fileType === 'pnml') {
+        this.transformerService.pnmlToBpmn(window.dropfileContent).subscribe({
+          next: (bpmn: string) => {
+            this.postLLMWithFallback(bpmn);
+          },
+          error: (err: any) => {
+            console.error('[Transformer] Status:', err.status, '| Body:', err.error);
+            this.spinnerService.hide();
+            this.error = 'PNML→BPMN Transformation fehlgeschlagen: ' + (err.status ?? err);
+          },
+        });
+        return;
+      }
+
       if (this.isLLMEnabled) {
         this.modelFallbackWarning = '';
-        this.p2tHttpService
-          .postP2TLLM(
-            window.dropfileContent,
-            this.apiKey,
-            this.prompt,
-            this.selectedModel,
-            this.selectedLLMProvider,
-            this.useRag
-          )
-          .subscribe({
-            next: (response: any) => {
-              this.spinnerService.hide();
-              this.displayText(response);
-            },
-            error: (err: any) => {
-              const fallbackModel = this.selectedLLMProvider === 'gemini' ? 'models/gemini-2.5-flash' : 'gpt-4';
-              const isServerError = typeof err === 'string' && err.includes('500');
-              if (isServerError && this.selectedModel !== fallbackModel) {
-                const failedModel = this.selectedModel;
-                this.selectedModel = fallbackModel;
-                this.modelFallbackWarning = `Model "${failedModel}" is not supported by the backend. Retrying with ${fallbackModel}...`;
-                this.p2tHttpService
-                  .postP2TLLM(
-                    window.dropfileContent,
-                    this.apiKey,
-                    this.prompt,
-                    this.selectedModel,
-                    this.selectedLLMProvider,
-                    this.useRag
-                  )
-                  .subscribe({
-                    next: (response: any) => {
-                      this.spinnerService.hide();
-                      this.modelFallbackWarning = `Model "${failedModel}" is not supported. ${fallbackModel} was used instead.`;
-                      this.displayText(response);
-                    },
-                    error: (retryErr: any) => {
-                      this.spinnerService.hide();
-                      this.error = retryErr;
-                    },
-                  });
-              } else {
-                this.spinnerService.hide();
-                this.error = err;
-              }
-            },
-          });
+        this.postLLMWithFallback(window.dropfileContent);
       } else {
         this.p2tHttpService.postP2T(window.dropfileContent).subscribe({
           next: (response: any) => {
@@ -346,6 +323,43 @@ export class CombinedComponent {
     }
 
     this.stepper.next();
+  }
+
+  private postLLMWithFallback(content: string): void {
+    const fallbackModel = this.selectedLLMProvider === 'gemini' ? 'models/gemini-2.0-flash' : 'gpt-4o';
+
+    this.p2tHttpService.postP2TLLM(
+      content, this.apiKey, this.prompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+    ).subscribe({
+      next: (response: any) => {
+        this.spinnerService.hide();
+        this.displayText(response);
+      },
+      error: (err: any) => {
+        const isServerError = typeof err === 'string' && err.includes('500');
+        if (isServerError && this.selectedModel !== fallbackModel) {
+          const failedModel = this.selectedModel;
+          this.selectedModel = fallbackModel;
+          this.modelFallbackWarning = `Model "${failedModel}" not supported by backend. Retrying with ${fallbackModel}…`;
+          this.p2tHttpService.postP2TLLM(
+            content, this.apiKey, this.prompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+          ).subscribe({
+            next: (response: any) => {
+              this.spinnerService.hide();
+              this.modelFallbackWarning = `Model "${failedModel}" not supported. Used ${fallbackModel} instead.`;
+              this.displayText(response);
+            },
+            error: (retryErr: any) => {
+              this.spinnerService.hide();
+              this.error = retryErr;
+            },
+          });
+        } else {
+          this.spinnerService.hide();
+          this.error = err;
+        }
+      },
+    });
   }
 
   editPrompt(): void {
@@ -437,9 +451,8 @@ export class CombinedComponent {
   private displayModel(): void {
     if (this.fileType === 'bpmn') {
       ModelDisplayer.displayBPMNModel(window.dropfileContent);
-    } else if (this.fileType === 'pnml') {
-      ModelDisplayer.generatePetriNet(window.dropfileContent);
     }
+    // PNML has no visual preview in P2T — transformer converts it on generate
   }
 
   private displayText(response: string): void {
