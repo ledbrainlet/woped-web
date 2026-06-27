@@ -96,9 +96,10 @@ export class t2pHttpService {
     text: string,
     apiKey: string,
     approach: string,
-    modelType: string, // New parameter to specify BPMN or Petri Net
-    llmProvider: string, // Dynamic LLM provider from frontend
-    callback: (response: any) => void
+    modelType: string,
+    llmProvider: string,
+    callback: (response: any) => void,
+    model?: string
   ) {
     // Determine the appropriate URL based on the modelType
     let llmUrl: string;
@@ -119,12 +120,15 @@ export class t2pHttpService {
       return;
     }
 
-    const body = {
+    const body: any = {
       text: text,
       api_key: apiKey,
       approach: approach,
-      llm_provider: llmProvider // Use the dynamic llm_provider from frontend
+      llm_provider: llmProvider,
     };
+    if (model) {
+      body.model = model.startsWith('models/') ? model.slice('models/'.length) : model;
+    }
     const modelContainer = document.getElementById('model-container');
     if (modelContainer) modelContainer.innerHTML = '';
     const petriContainer = document.getElementById('petri-render-container');

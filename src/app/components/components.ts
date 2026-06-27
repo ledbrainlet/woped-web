@@ -135,7 +135,8 @@ export class CombinedComponent {
         (response: any) => {
           this.responseText = JSON.stringify(response, null, 2);
           this.setTextResult(text);
-        }
+        },
+        this.selectedModel
       );
     } else {
       if (this.selectedDiagram === 'bpmn') {
