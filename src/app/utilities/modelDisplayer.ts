@@ -96,11 +96,19 @@ export class ModelDisplayer {
   // Preprocessing of the Petri net model. The model is converted into a format (domparser) that can be displayed by the library.
   public static async generatePetriNet(modelAsPetriNet: string) {
     try {
+      const pnml = ModelDisplayer.extractXml(modelAsPetriNet, 'pnml');
       const domparser = new DOMParser();
-      const xmlDoc = domparser.parseFromString(modelAsPetriNet, 'text/xml');
+      const xmlDoc = domparser.parseFromString(pnml, 'text/xml');
+
+      if (ModelDisplayer.findElementsByName(xmlDoc, 'parsererror').length > 0) {
+        ModelDisplayer.showModelError('The Petri net response could not be parsed as PNML.');
+        return;
+      }
+
       ModelDisplayer.displayPNMLModel(xmlDoc);
     } catch (err) {
       console.log(err);
+      ModelDisplayer.showModelError('The Petri net could not be displayed.');
     }
   }
 
@@ -110,12 +118,22 @@ export class ModelDisplayer {
     const prettyPetriNet = getPetriNet(petrinet);
     let gateways: GatewayLog[] = [];
 
+    if (
+      prettyPetriNet.places.length === 0 &&
+      prettyPetriNet.transitions.length === 0
+    ) {
+      ModelDisplayer.showModelError('The PNML response does not contain a Petri net.');
+      return;
+    }
+
     generatePetrinetConfig(prettyPetriNet);
     function generatePetrinetConfig(petrinet: PetriNet) {
       const data = getVisElements(petrinet);
 
       // create a network
       const container = document.getElementById('model-container');
+      if (!container) return;
+      container.innerHTML = '';
 
       const options = {
         layout: {
@@ -137,12 +155,16 @@ export class ModelDisplayer {
           places: {
             color: { background: '#4DB6AC', border: '#00695C' },
             borderWidth: 3,
-            shape: 'circle',
+            shape: 'dot',
+            size: 13,
+            font: { vadjust: 8 },
           },
           transitions: {
             color: { background: '#FFB74D', border: '#FB8C00' },
             shape: 'square',
             borderWidth: 3,
+            size: 22,
+            font: { vadjust: 44 },
           },
           andJoin: {
             color: { background: '#DCE775', border: '#9E9D24' },
@@ -199,7 +221,9 @@ export class ModelDisplayer {
         const place = places[x];
         petrinet.places.push({
           id: place.getAttribute('id'),
-          label: place.getElementsByTagName('text')[0].textContent,
+          label:
+            place.getElementsByTagName('text')[0]?.textContent ||
+            place.getAttribute('id'),
         });
       }
 
@@ -219,7 +243,9 @@ export class ModelDisplayer {
         }
         petrinet.transitions.push({
           id: transition.getAttribute('id'),
-          label: transition.getElementsByTagName('text')[0].textContent,
+          label:
+            transition.getElementsByTagName('text')[0]?.textContent ||
+            transition.getAttribute('id'),
           isGateway: isGateway,
           gatewayType: gatewayType,
           gatewayID: gatewayID,
@@ -288,7 +314,8 @@ export class ModelDisplayer {
         nodes.add({
           id: PetriNet.places[x].id,
           group: 'places',
-          label: PetriNet.places[x].label,
+          label: getPlaceLabel(PetriNet.places[x], PetriNet),
+          title: PetriNet.places[x].label || PetriNet.places[x].id,
         });
       }
 
@@ -300,8 +327,8 @@ export class ModelDisplayer {
           nodes.add({
             id: PetriNet.transitions[x].id,
             group: 'transitions',
-            label: PetriNet.transitions[x].id,
-            title: PetriNet.transitions[x].label,
+            label: getTransitionLabel(PetriNet.transitions[x]),
+            title: PetriNet.transitions[x].label || PetriNet.transitions[x].id,
           });
         } else {
           let gatewayGroup = '';
@@ -346,9 +373,125 @@ export class ModelDisplayer {
       resetGatewayLog();
       return { nodes: nodes, edges: edges };
     }
+
+    function getPlaceLabel(place: PetriPlace, PetriNet: PetriNet): string {
+      const label = (place.label || '').trim();
+      if (!label || label === place.id || isTechnicalPlaceLabel(label)) {
+        return getDerivedPlaceLabel(place, PetriNet);
+      }
+
+      return formatPetriLabel(label);
+    }
+
+    function getTransitionLabel(transition: PetriTransition): string {
+      const label = (transition.label || '').trim();
+      const id = (transition.id || '').trim();
+
+      if (!label || label === id) {
+        return '';
+      }
+
+      return formatPetriLabel(label);
+    }
+
+    function isTechnicalPlaceLabel(label: string): boolean {
+      return (
+        /^SILENTFROM.+TO.+$/i.test(label) ||
+        /^silent/i.test(label) ||
+        /^p\d+$/i.test(label)
+      );
+    }
+
+    function getDerivedPlaceLabel(place: PetriPlace, PetriNet: PetriNet): string {
+      const placeId = place.id;
+      const incomingTransition = PetriNet.arcs
+        .filter((arc) => arc.target === placeId)
+        .map((arc) =>
+          PetriNet.transitions.find((transition) => transition.id === arc.source)
+        )
+        .find((transition) => transition !== undefined);
+
+      if (incomingTransition) {
+        return toStateLabel(getTransitionLabel(incomingTransition));
+      }
+
+      const hasOutgoingArc = PetriNet.arcs.some((arc) => arc.source === placeId);
+      if (hasOutgoingArc) {
+        return 'Start';
+      }
+
+      return 'Ende';
+    }
+
+    function formatPetriLabel(label: string): string {
+      return wrapPetriLabel(
+        label
+          .replace(/\[(?:UserTask|Task|ManualTask|ServiceTask|ScriptTask)\]\s*/gi, '')
+          .replace(/_/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      );
+    }
+
+    function toStateLabel(label: string): string {
+      const plainLabel = label.replace(/\n/g, ' ').trim();
+      const words = plainLabel.split(/\s+/);
+
+      if (words.length < 2) {
+        return plainLabel;
+      }
+
+      const verb = words[words.length - 1].toLowerCase();
+      const object = words.slice(0, -1).join(' ');
+      const participles: Record<string, string> = {
+        anweisen: 'angewiesen',
+        abschliessen: 'abgeschlossen',
+        abschließen: 'abgeschlossen',
+        erfassen: 'erfasst',
+        pruefen: 'geprueft',
+        prüfen: 'geprueft',
+        vornehmen: 'vorgenommen',
+        bezahlen: 'bezahlt',
+        buchen: 'gebucht',
+        versenden: 'versendet',
+        senden: 'gesendet',
+        erhalten: 'erhalten',
+      };
+
+      if (participles[verb]) {
+        return wrapPetriLabel(`${object} ${participles[verb]}`);
+      }
+
+      return wrapPetriLabel(`${plainLabel} erledigt`);
+    }
+
+    function wrapPetriLabel(label: string): string {
+      const words = label.split(/\s+/);
+      const lines: string[] = [];
+      let currentLine = '';
+
+      words.forEach((word) => {
+        const nextLine = currentLine ? `${currentLine} ${word}` : word;
+        if (nextLine.length > 18 && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = nextLine;
+        }
+      });
+
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      return lines.join('\n');
+    }
   }
 
-  public static async displayBPMNModel(modelAsBPMN: string): Promise<void> {
+  public static async displayBPMNModel(
+    modelAsBPMN: string,
+    options: { normalizeLayout?: boolean } = {}
+  ): Promise<void> {
     const container = document.getElementById('model-container');
     if (!container) return;
 
@@ -364,11 +507,61 @@ export class ModelDisplayer {
 
     try {
       // Display the BPMN Model
-      await viewer.importXML(ModelDisplayer.normalizeBpmnLayout(modelAsBPMN));
+      const xml = options.normalizeLayout === false
+        ? modelAsBPMN
+        : ModelDisplayer.normalizeBpmnLayout(modelAsBPMN);
+
+      await viewer.importXML(xml);
       const canvas = viewer.get('canvas');
       canvas.resized();
       canvas.zoom('fit-viewport');
     } catch (err) {}
+  }
+
+  private static extractXml(response: string, rootTag: string): string {
+    let content = response.trim();
+
+    try {
+      const parsedResponse = JSON.parse(content);
+      if (typeof parsedResponse === 'string') {
+        content = parsedResponse;
+      } else if (typeof parsedResponse?.result === 'string') {
+        content = parsedResponse.result;
+      } else if (typeof parsedResponse?.pnml === 'string') {
+        content = parsedResponse.pnml;
+      } else if (typeof parsedResponse?.xml === 'string') {
+        content = parsedResponse.xml;
+      }
+    } catch {
+      // Response is already plain text/XML.
+    }
+
+    content = content
+      .replace(/^```(?:xml|pnml)?/i, '')
+      .replace(/```$/i, '')
+      .trim();
+
+    const start = content.search(new RegExp(`<${rootTag}\\b`, 'i'));
+    const end = content.toLowerCase().lastIndexOf(`</${rootTag}>`);
+
+    if (start >= 0 && end >= 0) {
+      return content.slice(start, end + rootTag.length + 3);
+    }
+
+    return content;
+  }
+
+  private static showModelError(message: string): void {
+    const container = document.getElementById('model-container');
+    if (container) {
+      container.innerHTML = '';
+    }
+
+    const errorContainer = document.getElementById('error-container-text');
+    if (!errorContainer) return;
+
+    errorContainer.textContent = message;
+    errorContainer.style.display = 'block';
   }
 
   private static normalizeBpmnLayout(modelAsBPMN: string): string {
@@ -390,13 +583,29 @@ export class ModelDisplayer {
     }
 
     const currentBounds = ModelDisplayer.getCurrentBpmnBounds(doc);
-    if (!ModelDisplayer.needsBpmnRelayout(currentBounds, flows)) {
-      return modelAsBPMN;
+    let layout: BpmnElementLayout[];
+    if (ModelDisplayer.needsBpmnRelayout(currentBounds, flows)) {
+      layout = ModelDisplayer.createBpmnLayout(elements, flows);
+      ModelDisplayer.applyBpmnShapeLayout(doc, layout);
+      ModelDisplayer.applyBpmnEdgeLayout(doc, layout, flows);
+    } else {
+      layout = elements
+        .map((element) => {
+          const bounds = currentBounds.get(element.id);
+          if (!bounds) return undefined;
+
+          return {
+            ...element,
+            rank: 0,
+            ...bounds,
+          };
+        })
+        .filter(
+          (element): element is BpmnElementLayout => element !== undefined
+        );
     }
 
-    const layout = ModelDisplayer.createBpmnLayout(elements, flows);
-    ModelDisplayer.applyBpmnShapeLayout(doc, layout);
-    ModelDisplayer.applyBpmnEdgeLayout(doc, layout, flows);
+    ModelDisplayer.applyBpmnContainerLayout(doc, layout);
 
     return new XMLSerializer().serializeToString(doc);
   }
@@ -572,6 +781,159 @@ export class ModelDisplayer {
       bounds.setAttribute('width', String(element.width));
       bounds.setAttribute('height', String(element.height));
     });
+  }
+
+  private static applyBpmnContainerLayout(
+    doc: Document,
+    layout: BpmnElementLayout[]
+  ): void {
+    const layoutById = new Map(layout.map((element) => [element.id, element]));
+    const shapeByElement = new Map<string, Element>();
+    ModelDisplayer.findElementsByName(doc, 'BPMNShape').forEach((shape) => {
+      const bpmnElement = shape.getAttribute('bpmnElement');
+      if (bpmnElement) shapeByElement.set(bpmnElement, shape);
+    });
+
+    ModelDisplayer.findElementsByName(doc, 'participant').forEach(
+      (participant) => {
+        const participantId = participant.getAttribute('id');
+        const processRef = participant.getAttribute('processRef');
+        if (!participantId) return;
+        if (!processRef) {
+          ModelDisplayer.removeEmptyBpmnContainer(
+            doc,
+            participantId,
+            shapeByElement.get(participantId)
+          );
+          return;
+        }
+
+        const process = Array.from(doc.getElementsByTagName('*')).find(
+          (element) =>
+            element.localName === 'process' &&
+            element.getAttribute('id') === processRef
+        );
+        if (!process) {
+          ModelDisplayer.removeEmptyBpmnContainer(
+            doc,
+            participantId,
+            shapeByElement.get(participantId)
+          );
+          return;
+        }
+
+        const memberIds = Array.from(process.getElementsByTagName('*'))
+          .filter((element) =>
+            ModelDisplayer.bpmnElementNames.has(element.localName)
+          )
+          .map((element) => element.getAttribute('id') || '');
+        const hasVisibleMembers = memberIds.some((id) => layoutById.has(id));
+        if (!hasVisibleMembers) {
+          ModelDisplayer.removeEmptyBpmnContainer(
+            doc,
+            participantId,
+            shapeByElement.get(participantId)
+          );
+          return;
+        }
+
+        ModelDisplayer.resizeBpmnContainer(
+          shapeByElement.get(participantId),
+          memberIds,
+          layoutById,
+          55,
+          60
+        );
+      }
+    );
+
+    ModelDisplayer.findElementsByName(doc, 'lane').forEach((lane) => {
+      const laneId = lane.getAttribute('id');
+      if (!laneId) return;
+
+      const memberIds = ModelDisplayer.findElementsByName(lane, 'flowNodeRef')
+        .map((reference) => reference.textContent?.trim() || '')
+        .filter((id) => id.length > 0);
+      const hasVisibleMembers = memberIds.some((id) => layoutById.has(id));
+      if (!hasVisibleMembers) {
+        ModelDisplayer.removeEmptyBpmnContainer(
+          doc,
+          laneId,
+          shapeByElement.get(laneId)
+        );
+        return;
+      }
+
+      ModelDisplayer.resizeBpmnContainer(
+        shapeByElement.get(laneId),
+        memberIds,
+        layoutById,
+        35,
+        40
+      );
+    });
+  }
+
+  private static removeEmptyBpmnContainer(
+    doc: Document,
+    elementId: string,
+    shape: Element | undefined
+  ): void {
+    shape?.parentNode?.removeChild(shape);
+
+    const connectedFlowIds = Array.from(doc.getElementsByTagName('*'))
+      .filter(
+        (element) =>
+          element.localName === 'messageFlow' &&
+          (element.getAttribute('sourceRef') === elementId ||
+            element.getAttribute('targetRef') === elementId)
+      )
+      .map((element) => element.getAttribute('id'))
+      .filter((id): id is string => Boolean(id));
+
+    ModelDisplayer.findElementsByName(doc, 'BPMNEdge').forEach((edge) => {
+      if (connectedFlowIds.includes(edge.getAttribute('bpmnElement') || '')) {
+        edge.parentNode?.removeChild(edge);
+      }
+    });
+  }
+
+  private static resizeBpmnContainer(
+    shape: Element | undefined,
+    memberIds: string[],
+    layoutById: Map<string, BpmnElementLayout>,
+    horizontalPadding: number,
+    verticalPadding: number
+  ): void {
+    if (!shape) return;
+
+    const members = memberIds
+      .map((id) => layoutById.get(id))
+      .filter((element): element is BpmnElementLayout => element !== undefined);
+    if (members.length === 0) return;
+
+    const left = Math.min(...members.map((element) => element.x));
+    const top = Math.min(...members.map((element) => element.y));
+    const right = Math.max(
+      ...members.map((element) => element.x + element.width)
+    );
+    const bottom = Math.max(
+      ...members.map((element) => element.y + element.height)
+    );
+    const bounds = ModelDisplayer.findElementsByName(shape, 'Bounds')[0];
+    if (!bounds) return;
+
+    shape.setAttribute('isHorizontal', 'true');
+    bounds.setAttribute('x', String(left - horizontalPadding));
+    bounds.setAttribute('y', String(top - verticalPadding));
+    bounds.setAttribute(
+      'width',
+      String(right - left + horizontalPadding * 2)
+    );
+    bounds.setAttribute(
+      'height',
+      String(bottom - top + verticalPadding * 2)
+    );
   }
 
   private static applyBpmnEdgeLayout(

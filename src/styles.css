@@ -1,6 +1,7 @@
 /* You can add global styles to this file, and also import other style files */
 @import "bpmn-js/dist/assets/bpmn-js.css";
 @import "bpmn-js/dist/assets/diagram-js.css";
+@import "bpmn-js/dist/assets/bpmn-font/css/bpmn.css";
 
 html,
 body {
@@ -31,4 +32,20 @@ body {
 
 .dropdown-field {
   width: 200px;
+}
+
+.djs-palette {
+  background: #fff;
+  border: 1px solid #c7cbd1;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.djs-palette .entry {
+  color: #30343b;
+}
+
+.djs-palette .entry:hover {
+  background: #e8f1fb;
+  color: #0b5cab;
 }

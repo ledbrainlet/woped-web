@@ -73,20 +73,19 @@ export class t2pHttpService {
   public postT2PPetriNet(text: string) {
     //Reset Model Container Div, so that only valid/current model will be displayed.
     document.getElementById('model-container')!.innerHTML = '';
+
     return this.t2phttpClient
       .post<string>(this.urlPetriNet, text, httpOptions)
       .subscribe(
         (response: any) => {
           this.spinnerService.hide();
-          // Call Method to Display the BPMN Model.
-          ModelDisplayer.generatePetriNet(response);
           this.plainDocumentForDownload = response;
         },
         (error: any) => {
           this.spinnerService.hide();
           // Error Handling User Feedback
           document.getElementById('error-container-text')!.innerHTML =
-            error.status + ' ' + error.statusText + ' ' + error.error;
+            this.formatError(error);
           document.getElementById('error-container-text')!.style.display =
             'block';
         }
@@ -120,7 +119,7 @@ export class t2pHttpService {
     }
 
     const body = {
-      text: text,
+      text,
       api_key: apiKey,
       approach: approach,
       llm_provider: llmProvider // Use the dynamic llm_provider from frontend
@@ -148,8 +147,6 @@ export class t2pHttpService {
         // Determine which display method to use based on modelType
         if (modelType.toLowerCase().includes('bpmn') || modelType === 'bpmn') {
           ModelDisplayer.displayBPMNModel(xmlContent);
-        } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
-          ModelDisplayer.generatePetriNet(xmlContent);
         }
 
         callback(parsedResponse); // Call the callback function with the parsed response
@@ -157,10 +154,27 @@ export class t2pHttpService {
       (error: any) => {
         this.spinnerService.hide();
         document.getElementById('error-container-text')!.innerHTML =
-          error.status + ' ' + error.statusText + ' ' + error.error;
+          this.formatError(error);
         document.getElementById('error-container-text')!.style.display =
           'block';
       }
     );
+  }
+
+  private formatError(error: any): string {
+    const backendError =
+      typeof error?.error === 'string'
+        ? error.error
+        : error?.error?.error || error?.message || 'Unknown error';
+
+    if (
+      backendError.includes('BPMN to PNML transformation failed') ||
+      backendError.includes('TransformerServiceError') ||
+      backendError.includes('transformation service responded with an error')
+    ) {
+      return `${error?.status || ''} ${error?.statusText || ''} The Petri net transformer could not convert this process. Please use a simpler Petri-net description without lanes, message flows, timers, errors, or subprocesses.`;
+    }
+
+    return `${error?.status || ''} ${error?.statusText || ''} ${backendError}`.trim();
   }
 }

@@ -40,6 +40,7 @@ export class CombinedComponent {
   protected promptingStrategy = 'few_shot';
   protected isFiledDropped = false;
   protected droppedFileName = '';
+  private t2pUploadedFileType: 'text' | 'bpmn' | null = null;
 
   // ─── P2T state ────────────────────────────────────────────────────────────
   response: any;
@@ -53,7 +54,7 @@ export class CombinedComponent {
   models: string[] = [];
   selectedModel: string;
   error: string;
-  modelFallbackWarning: string = '';
+  modelFallbackWarning = '';
   hasPromptWarningShown = false;
   isApiKeyEntered = false;
 
@@ -114,10 +115,21 @@ export class CombinedComponent {
 
   protected generateProcess(): void {
     document.getElementById('error-container-text')!.style.display = 'none';
-    const text = this.replaceUmlaut(this.text.trim());
+    const rawText = this.text.trim();
+    const text = this.replaceUmlaut(rawText);
 
-    if (!text) {
+    if (!rawText) {
       this.setErrorMessage('Please enter a process description first.');
+      return;
+    }
+
+    if (
+      this.selectedDiagram === 'bpmn' &&
+      this.t2pUploadedFileType === 'bpmn' &&
+      this.isBpmnXml(rawText)
+    ) {
+      ModelDisplayer.displayBPMNModel(rawText, { normalizeLayout: false });
+      this.setTextResult(rawText);
       return;
     }
 
@@ -194,9 +206,11 @@ export class CombinedComponent {
      for (let i = 0; i < files.length; i++) {
        const file = files[i];
        
-       // Validate file type - only allow .txt files
-       if (file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase() !== 'txt') {
-         alert('Please upload only .txt files');
+       const extension = file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase();
+       
+       // T2P accepts plain text prompts or existing BPMN XML files.
+       if (extension !== 'txt' && extension !== 'bpmn' && extension !== 'xml') {
+         alert('Please upload only .txt, .bpmn or .xml files');
          return;
        }
        
@@ -204,10 +218,15 @@ export class CombinedComponent {
        reader.onload = () => {
          window.dropfileContent = reader.result as string;
          this.text = window.dropfileContent;
+         this.t2pUploadedFileType = extension === 'txt' ? 'text' : 'bpmn';
        };
        reader.readAsText(file);
      }
    }
+
+  private isBpmnXml(text: string): boolean {
+    return /<[^>]*definitions\b/i.test(text) && /bpmn/i.test(text);
+  }
 
   protected setTextResult(text: string): void {
     this.textResult = text;
@@ -263,7 +282,7 @@ export class CombinedComponent {
 
   generateText(): void {
     if (this.fileType === 'bpmn') {
-      ModelDisplayer.displayBPMNModel(window.dropfileContent);
+      ModelDisplayer.displayBPMNModel(window.dropfileContent, { normalizeLayout: false });
     } else if (this.fileType === 'pnml') {
       ModelDisplayer.generatePetriNet(window.dropfileContent);
     }
@@ -427,7 +446,7 @@ export class CombinedComponent {
 
   private displayModel(): void {
     if (this.fileType === 'bpmn') {
-      ModelDisplayer.displayBPMNModel(window.dropfileContent);
+      ModelDisplayer.displayBPMNModel(window.dropfileContent, { normalizeLayout: false });
     } else if (this.fileType === 'pnml') {
       ModelDisplayer.generatePetriNet(window.dropfileContent);
     }

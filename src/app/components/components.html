@@ -101,7 +101,7 @@
        <!-- File Upload via Drag & Drop -->
        <div class="dropzone" #dropzoneRef (drop)="onDrop($event)" (dragover)="onDragOver($event)"
          (click)="selectT2PFiles()">
-         <input type="file" style="display: none" #t2pFileInputRef accept=".txt" (change)="onT2PFileSelected($event)" />
+         <input type="file" style="display: none" #t2pFileInputRef accept=".txt,.bpmn,.xml" (change)="onT2PFileSelected($event)" />
          <span *ngIf="isFiledDropped">{{ 't2p.step3.uploadedFile' | transloco: { name: droppedFileName } }}</span>
          <span *ngIf="!isFiledDropped">
            {{ 't2p.step3.dropzoneText' | transloco }}
