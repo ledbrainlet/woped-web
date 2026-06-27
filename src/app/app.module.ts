@@ -17,6 +17,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { RouterModule, Routes } from '@angular/router';
 import { p2tHttpService } from './Services/p2tHttpService';
 import { t2pHttpService } from './Services/t2pHttpService';
+import { TransformerService } from './Services/transformerService';
 import { AppComponent } from './app.component';
 import { CombinedComponent } from './components/components';
 import { HomeComponent } from './home/home.component';
@@ -56,6 +57,7 @@ const routes: Routes = [
     },
     p2tHttpService,
     t2pHttpService,
+    TransformerService,
   ],
   bootstrap: [AppComponent],
 })

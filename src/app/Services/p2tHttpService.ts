@@ -72,7 +72,9 @@ export class p2tHttpService {
         params = params.set('prompt', prompt);
       }
       if (model) {
-        params = params.set('gptModel', model);
+        // Gemini API returns model names as "models/gemini-x"; backend expects just "gemini-x"
+        const normalizedModel = model.startsWith('models/') ? model.slice('models/'.length) : model;
+        params = params.set('gptModel', normalizedModel);
       }
       params = params.set('provider', provider);
       params = params.set('useRag', useRag.toString());
@@ -142,7 +144,7 @@ export class p2tHttpService {
           errorMessage = 'Text could not be parsed';
           break;
         default:
-          errorMessage = `Server Error (${error.status}): ${error.statusText}`;
+          errorMessage = `Server Error (${error.status}): ${error.error || error.statusText}`;
       }
     }
     return throwError(errorMessage);

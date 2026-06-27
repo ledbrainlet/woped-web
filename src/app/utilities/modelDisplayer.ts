@@ -71,6 +71,7 @@ interface BpmnSequenceFlow {
 
 // Model Display Class
 export class ModelDisplayer {
+  public static lastPetriNetDataUrl: string | null = null;
   private static readonly bpmnElementNames = new Set([
     'startEvent',
     'endEvent',
@@ -94,7 +95,7 @@ export class ModelDisplayer {
   ]);
 
   // Preprocessing of the Petri net model. The model is converted into a format (domparser) that can be displayed by the library.
-  public static async generatePetriNet(modelAsPetriNet: string) {
+  public static async generatePetriNet(modelAsPetriNet: string, containerId = 'model-container') {
     try {
       const pnml = ModelDisplayer.extractXml(modelAsPetriNet, 'pnml');
       const domparser = new DOMParser();
@@ -105,7 +106,7 @@ export class ModelDisplayer {
         return;
       }
 
-      ModelDisplayer.displayPNMLModel(xmlDoc);
+      ModelDisplayer.displayPNMLModel(xmlDoc, containerId);
     } catch (err) {
       console.log(err);
       ModelDisplayer.showModelError('The Petri net could not be displayed.');
@@ -113,7 +114,7 @@ export class ModelDisplayer {
   }
 
   // Displays the BPMN model. Sets the representation in the HTML element "model-container".
-  public static displayPNMLModel(petrinet: Document) {
+  public static displayPNMLModel(petrinet: Document, containerId = 'model-container') {
     const generateWorkFlowNet = Boolean(false); //Determines wether WoPeD specific Elements like XOR Split are created
     const prettyPetriNet = getPetriNet(petrinet);
     let gateways: GatewayLog[] = [];
@@ -131,7 +132,7 @@ export class ModelDisplayer {
       const data = getVisElements(petrinet);
 
       // create a network
-      const container = document.getElementById('model-container');
+      const container = document.getElementById(containerId);
       if (!container) return;
       container.innerHTML = '';
 
@@ -194,7 +195,18 @@ export class ModelDisplayer {
         },
       };
       // initialize your network!
-      new vis.Network(container, data, options);
+      ModelDisplayer.lastPetriNetDataUrl = null;
+      const network = new vis.Network(container, data, options);
+      // afterDrawing fires after the first render and passes the canvas context directly
+      const captureCanvas = (ctx: CanvasRenderingContext2D) => {
+        network.off('afterDrawing', captureCanvas);
+        try {
+          ModelDisplayer.lastPetriNetDataUrl = ctx.canvas.toDataURL('image/png');
+        } catch (e) {
+          console.error('Failed to capture Petri-Net canvas:', e);
+        }
+      };
+      network.on('afterDrawing', captureCanvas);
     }
 
     function getPetriNet(PNML: Document): PetriNet {
