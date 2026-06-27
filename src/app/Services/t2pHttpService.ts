@@ -134,53 +134,57 @@ export class t2pHttpService {
     const petriContainer = document.getElementById('petri-render-container');
     if (petriContainer) petriContainer.innerHTML = '';
 
-    return this.t2phttpClient.post<string>(llmUrl, body, httpOptions).subscribe(
-      (response: any) => {
-        this.spinnerService.hide();
+    const handleSuccess = (response: any) => {
+      this.spinnerService.hide();
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(response);
+      } catch (e) {
+        parsedResponse = { result: response };
+      }
+      const xmlContent = parsedResponse.result || parsedResponse;
+      this.plainDocumentForDownload = xmlContent;
 
-        // Parse the JSON response since API returns JSON as text
-        let parsedResponse;
-        try {
-          parsedResponse = JSON.parse(response);
-        } catch (e) {
-          // If parsing fails, treat response as plain text
-          parsedResponse = { result: response };
-        }
-
-        // Extract the result from the parsed JSON response
-        const xmlContent = parsedResponse.result || parsedResponse;
-        this.plainDocumentForDownload = xmlContent;
-
-        // Determine which display method to use based on modelType
-        if (modelType.toLowerCase().includes('bpmn') || modelType === 'bpmn') {
-          ModelDisplayer.displayBPMNModel(xmlContent);
-          callback(parsedResponse);
-        } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
-          // LLM returned BPMN — convert to PNML via transformer
-          this.transformerService.bpmnToPnml(xmlContent).subscribe({
-            next: (pnml: string) => {
-              this.plainDocumentForDownload = pnml;
-              ModelDisplayer.generatePetriNet(pnml, 'petri-render-container');
-              callback(parsedResponse);
-            },
-            error: (err: any) => {
-              this.spinnerService.hide();
-              const errorEl = document.getElementById('error-container-text');
-              if (errorEl) {
-                errorEl.innerHTML = 'BPMN→PNML Transformation fehlgeschlagen: ' + err.status;
-                errorEl.style.display = 'block';
-              }
+      if (modelType.toLowerCase().includes('bpmn') || modelType === 'bpmn') {
+        ModelDisplayer.displayBPMNModel(xmlContent);
+        callback(parsedResponse);
+      } else if (modelType.toLowerCase().includes('petri') || modelType.toLowerCase().includes('pnml') || modelType === 'petri') {
+        this.transformerService.bpmnToPnml(xmlContent).subscribe({
+          next: (pnml: string) => {
+            this.plainDocumentForDownload = pnml;
+            ModelDisplayer.generatePetriNet(pnml, 'petri-render-container');
+            callback(parsedResponse);
+          },
+          error: (err: any) => {
+            this.spinnerService.hide();
+            const errorEl = document.getElementById('error-container-text');
+            if (errorEl) {
+              errorEl.innerHTML = 'BPMN→PNML Transformation fehlgeschlagen: ' + err.status;
+              errorEl.style.display = 'block';
             }
-          });
-        }
-      },
-      (error: any) => {
+          }
+        });
+      }
+    };
+
+    const handleError = (error: any, attempt: number) => {
+      if (error.status === 500 && attempt < 3) {
+        // Retry up to 3 times on 500 — LLM responses are non-deterministic
+        this.t2phttpClient.post<string>(llmUrl, body, httpOptions).subscribe(
+          (response: any) => handleSuccess(response),
+          (retryError: any) => handleError(retryError, attempt + 1)
+        );
+      } else {
         this.spinnerService.hide();
         document.getElementById('error-container-text')!.innerHTML =
           error.status + ' ' + error.statusText + ' ' + error.error;
-        document.getElementById('error-container-text')!.style.display =
-          'block';
+        document.getElementById('error-container-text')!.style.display = 'block';
       }
+    };
+
+    return this.t2phttpClient.post<string>(llmUrl, body, httpOptions).subscribe(
+      (response: any) => handleSuccess(response),
+      (error: any) => handleError(error, 0)
     );
   }
 }

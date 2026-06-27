@@ -126,6 +126,10 @@ export class CombinedComponent {
     this.spinnerService.show();
 
     if (this.isLLMEnabled) {
+      // T2P backend prompts are tuned for gpt-4; prefer it over gpt-4o when available
+      const t2pModel = this.selectedLLMProvider === 'openai' && this.models.includes('gpt-4')
+        ? 'gpt-4'
+        : this.selectedModel;
       this.t2pHttpService.postT2PWithLLM(
         text,
         this.apiKey,
@@ -136,7 +140,7 @@ export class CombinedComponent {
           this.responseText = JSON.stringify(response, null, 2);
           this.setTextResult(text);
         },
-        this.selectedModel
+        t2pModel
       );
     } else {
       if (this.selectedDiagram === 'bpmn') {
