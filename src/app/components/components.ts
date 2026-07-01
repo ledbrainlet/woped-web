@@ -348,11 +348,23 @@ export class CombinedComponent {
     this.stepper.next();
   }
 
+  /**
+   * Appends an explicit language directive to the user-editable prompt so the
+   * LLM always answers in the language currently selected in the UI (DE/EN),
+   * instead of defaulting to whatever language the prompt text happens to be in.
+   */
+  private getEffectivePrompt(): string {
+    const activeLang = this.translocoService.getActiveLang();
+    const languageName = activeLang === 'de' ? 'German' : 'English';
+    return `${this.prompt} Please respond exclusively in ${languageName}, regardless of the language of the input.`;
+  }
+
   private postLLMWithFallback(content: string): void {
     const fallbackModel = this.selectedLLMProvider === 'gemini' ? 'models/gemini-2.0-flash' : 'gpt-4o';
+    const effectivePrompt = this.getEffectivePrompt();
 
     this.p2tHttpService.postP2TLLM(
-      content, this.apiKey, this.prompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+      content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, this.useRag
     ).subscribe({
       next: (response: any) => {
         this.spinnerService.hide();
@@ -365,7 +377,7 @@ export class CombinedComponent {
           this.selectedModel = fallbackModel;
           this.modelFallbackWarning = `Model "${failedModel}" not supported by backend. Retrying with ${fallbackModel}…`;
           this.p2tHttpService.postP2TLLM(
-            content, this.apiKey, this.prompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+            content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, this.useRag
           ).subscribe({
             next: (response: any) => {
               this.spinnerService.hide();
