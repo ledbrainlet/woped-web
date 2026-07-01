@@ -186,11 +186,6 @@
           <mat-option *ngFor="let model of models" [value]="model">{{ model }}</mat-option>
         </mat-select>
       </mat-form-field>
-
-      <!-- RAG Toggle (nur wenn LLM aktiv) -->
-      <!-- <mat-slide-toggle (change)="onRagToggleChange($event)" class="rag-toggle">
-        {{ useRag ? 'RAG Enabled' : 'RAG Disabled' }}
-      </mat-slide-toggle> -->
     </div>
 
     <button mat-button matStepperPrevious class="card">{{ 'common.back' | transloco }}</button>

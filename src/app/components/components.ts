@@ -26,6 +26,12 @@ export class CombinedComponent {
   selectedTool: 't2p' | 'p2t' | null = null;
 
   // ─── Shared LLM config (Step 1) ───────────────────────────────────────────
+  // Note: the non-LLM code paths gated behind this flag (postP2T,
+  // postT2PBPMN/postT2PPetriNet) are currently unreachable from the UI on
+  // purpose. Backend checks (2026-07-01) showed generate_BPMN always requires
+  // a real API key/LLM call, and the classic P2T endpoint does not reliably
+  // detect BPMN/PNML content either — so there is no working "no LLM" mode
+  // to expose right now. Left in place in case the backend is fixed later.
   isLLMEnabled = true;
   selectedLLMProvider = 'openai';
   apiKey = '';
@@ -48,7 +54,6 @@ export class CombinedComponent {
   isFileDropped = false;
   droppedFileNameP2T = '';
   showPromptInput = false;
-  useRag = false;
   prompt = `Create a clearly structured and comprehensible continuous text from the given BPMN that is understandable for an uninformed reader. The text should be easy to read in the summary and contain all important content; if there are subdivided points, these are integrated into the text with suitable sentence beginnings in order to obtain a well-structured and easy-to-read text. Under no circumstances should the output contain sub-items or paragraphs, but should cover all processes in one piece!`;
   isPromptReadonly = true;
   models: string[] = [];
@@ -299,10 +304,6 @@ export class CombinedComponent {
     this.selectedModel = model;
   }
 
-  // onRagToggleChange(event: MatSlideToggleChange): void {
-  //   this.useRag = event.checked;
-  // }
-
   generateText(): void {
     if (this.fileType === 'bpmn') {
       ModelDisplayer.displayBPMNModel(window.dropfileContent, { normalizeLayout: false });
@@ -311,11 +312,24 @@ export class CombinedComponent {
     if (window.fileContent !== undefined || window.dropfileContent !== undefined) {
       this.spinnerService.show();
 
-      // PNML: erst PNML→BPMN via Transformer, dann LLM-Endpunkt
+      // PNML: erst PNML→BPMN via Transformer, dann je nach Modus LLM- oder klassischer Endpunkt
       if (this.fileType === 'pnml') {
         this.transformerService.pnmlToBpmn(window.dropfileContent).subscribe({
           next: (bpmn: string) => {
-            this.postLLMWithFallback(bpmn);
+            if (this.isLLMEnabled) {
+              this.postLLMWithFallback(bpmn);
+            } else {
+              this.p2tHttpService.postP2T(bpmn).subscribe({
+                next: (response: any) => {
+                  this.spinnerService.hide();
+                  this.displayText(response);
+                },
+                error: (err: any) => {
+                  this.spinnerService.hide();
+                  this.error = err;
+                },
+              });
+            }
           },
           error: (err: any) => {
             console.error('[Transformer] Status:', err.status, '| Body:', err.error);
@@ -363,8 +377,10 @@ export class CombinedComponent {
     const fallbackModel = this.selectedLLMProvider === 'gemini' ? 'models/gemini-2.0-flash' : 'gpt-4o';
     const effectivePrompt = this.getEffectivePrompt();
 
+    // RAG support was removed at the PO's request; the backend endpoint still
+    // requires the parameter, so we pass a fixed `false` here.
     this.p2tHttpService.postP2TLLM(
-      content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+      content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, false
     ).subscribe({
       next: (response: any) => {
         this.spinnerService.hide();
@@ -377,7 +393,7 @@ export class CombinedComponent {
           this.selectedModel = fallbackModel;
           this.modelFallbackWarning = `Model "${failedModel}" not supported by backend. Retrying with ${fallbackModel}…`;
           this.p2tHttpService.postP2TLLM(
-            content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, this.useRag
+            content, this.apiKey, effectivePrompt, this.selectedModel, this.selectedLLMProvider, false
           ).subscribe({
             next: (response: any) => {
               this.spinnerService.hide();
@@ -410,7 +426,7 @@ export class CombinedComponent {
 
   isGenerateButtonDisabled(): boolean {
     if (!this.isFileDropped) return true;
-    if (!this.selectedModel) return true;
+    if (this.isLLMEnabled && !this.selectedModel) return true;
     return false;
   }
 

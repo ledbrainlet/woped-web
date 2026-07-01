@@ -8,7 +8,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule, MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatStepperModule } from '@angular/material/stepper';
 import { CombinedComponent } from './components';
 import { of } from 'rxjs';
@@ -51,8 +51,8 @@ describe('CombinedComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should start with LLM disabled', () => {
-    expect(component.isLLMEnabled).toBeFalsy();
+  it('should default to LLM enabled (openai provider)', () => {
+    expect(component.isLLMEnabled).toBeTruthy();
     expect(component.apiKeyValid).toBeNull();
   });
 
@@ -68,21 +68,22 @@ describe('CombinedComponent', () => {
   });
 
   it('should allow proceeding without LLM (no key required)', () => {
+    // The "no LLM" mode has no UI entry point right now (see comment on
+    // isLLMEnabled): the backend has no working non-AI fallback for either
+    // T2P or P2T. This test documents the intended canProceed formula for
+    // whenever isLLMEnabled is false, should that ever become reachable again.
     component.isLLMEnabled = false;
-    // canProceed logic: if !isLLMEnabled => true
     const canProceed = !component.isLLMEnabled || component.apiKeyValid === true || component.selectedLLMProvider === 'lmstudio';
     expect(canProceed).toBeTruthy();
   });
 
   it('should allow proceeding with LM Studio (no key required)', () => {
-    component.isLLMEnabled = true;
     component.selectedLLMProvider = 'lmstudio';
     const canProceed = !component.isLLMEnabled || component.apiKeyValid === true || component.selectedLLMProvider === 'lmstudio';
     expect(canProceed).toBeTruthy();
   });
 
   it('should block proceeding with LLM enabled but key not validated', () => {
-    component.isLLMEnabled = true;
     component.selectedLLMProvider = 'openai';
     component.apiKeyValid = null;
     const canProceed = !component.isLLMEnabled || component.apiKeyValid === true || component.selectedLLMProvider === 'lmstudio';
@@ -90,7 +91,6 @@ describe('CombinedComponent', () => {
   });
 
   it('should allow proceeding once API key is validated', () => {
-    component.isLLMEnabled = true;
     component.selectedLLMProvider = 'openai';
     component.apiKeyValid = true;
     const canProceed = !component.isLLMEnabled || component.apiKeyValid === true || component.selectedLLMProvider === 'lmstudio';
@@ -113,7 +113,7 @@ describe('CombinedComponent', () => {
     expect(component.selectedTool).toEqual('p2t');
   });
 
-  // ─── P2T: model/RAG ───────────────────────────────────────────────────────
+  // ─── P2T: model selection ─────────────────────────────────────────────────
 
   it('should fetch models for lmstudio (null key)', () => {
     const mockModels = ['Llama-2-7b', 'Mistral-7B'];
@@ -134,27 +134,14 @@ describe('CombinedComponent', () => {
     expect(component.selectedModel).toEqual('gemini-pro');
   });
 
-  it('should fetch models for openai', () => {
+  it('should fetch models for openai and prefer gpt-4 when available', () => {
     const mockModels = ['gpt-3.5-turbo', 'gpt-4'];
     jest.spyOn(component['p2tHttpService'], 'getModels').mockReturnValue(of(mockModels));
     component.apiKey = 'sk-proj-123456';
     component.selectedLLMProvider = 'openai';
     component.fetchModelsForProvider('openai');
     expect(component.models).toEqual(mockModels);
-    expect(component.selectedModel).toEqual('gpt-3.5-turbo');
-  });
-
-  it('should enable RAG when toggled on', () => {
-    const mockEvent = { checked: true } as MatSlideToggleChange;
-    component.onRagToggleChange(mockEvent);
-    expect(component.useRag).toBeTruthy();
-  });
-
-  it('should disable RAG when toggled off', () => {
-    component.useRag = true;
-    const mockEvent = { checked: false } as MatSlideToggleChange;
-    component.onRagToggleChange(mockEvent);
-    expect(component.useRag).toBeFalsy();
+    expect(component.selectedModel).toEqual('gpt-4');
   });
 
   it('should update selectedModel on onModelChange', () => {
@@ -191,8 +178,23 @@ describe('CombinedComponent', () => {
     expect(component.isGenerateButtonDisabled()).toBeTruthy();
   });
 
-  it('should enable generate button when file is dropped', () => {
+  it('should disable generate button when LLM is enabled but no model is selected', () => {
     component.isFileDropped = true;
+    component.selectedModel = undefined;
+    expect(component.isGenerateButtonDisabled()).toBeTruthy();
+  });
+
+  it('should enable generate button once a model is selected', () => {
+    component.isFileDropped = true;
+    component.selectedModel = 'gpt-4';
+    expect(component.isGenerateButtonDisabled()).toBeFalsy();
+  });
+
+  it('should enable generate button without a model when LLM is disabled', () => {
+    // Documents intended behavior for isLLMEnabled=false; currently unreachable via UI.
+    component.isFileDropped = true;
+    component.isLLMEnabled = false;
+    component.selectedModel = undefined;
     expect(component.isGenerateButtonDisabled()).toBeFalsy();
   });
 
